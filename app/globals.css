@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --brand-orange: #ea580c;
+  --brand-dark: #1c1917;
+  --brand-cream: #fdf8f3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--brand-cream);
+  color: var(--brand-dark);
+}
+
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #1c1917 0%, #292524 50%, #3b2c26 100%);
+}
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+}
+
+/* Admin sidebar */
+.admin-sidebar {
+  background: #1c1917;
+  min-height: 100vh;
+}
