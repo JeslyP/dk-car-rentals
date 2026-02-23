@@ -8,6 +8,7 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState<string>('')
+  const [bookedVehicleIds, setBookedVehicleIds] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', start_date: '', end_date: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -18,6 +19,36 @@ export default function Home() {
       setLoading(false)
     })
   }, [])
+
+  // Check which vehicles are booked when dates change
+  const checkAvailability = async (start_date: string, end_date: string) => {
+    if (!start_date || !end_date) {
+      setBookedVehicleIds(new Set())
+      return
+    }
+    // Find rentals that overlap with the selected date range
+    const { data } = await supabase
+      .from('rentals')
+      .select('vehicle_id')
+      .lte('start_date', end_date)
+      .gte('end_date', start_date)
+
+    const booked = new Set<string>((data || []).map((r: any) => r.vehicle_id))
+    setBookedVehicleIds(booked)
+
+    // If the currently selected vehicle is now booked, deselect it
+    if (selectedVehicle && booked.has(selectedVehicle)) {
+      setSelectedVehicle('')
+    }
+  }
+
+  const handleDateChange = (field: 'start_date' | 'end_date', value: string) => {
+    const updated = { ...formData, [field]: value }
+    setFormData(updated)
+    if (updated.start_date && updated.end_date) {
+      checkAvailability(updated.start_date, updated.end_date)
+    }
+  }
 
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,6 +62,8 @@ export default function Home() {
     setSubmitted(true)
     setShowForm(false)
   }
+
+  const isVehicleBooked = (vehicleId: string) => bookedVehicleIds.has(vehicleId)
 
   return (
     <div className="min-h-screen" style={{ background: '#fdf8f3' }}>
@@ -125,6 +158,9 @@ export default function Home() {
         <div className="text-center mb-10">
           <p className="text-orange-600 font-semibold tracking-widest text-xs uppercase mb-2">Browse & Choose</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: '#1c1917' }}>Our Fleet</h2>
+          {!formData.start_date && (
+            <p className="text-gray-400 text-sm mt-2">Select dates when booking to see real-time availability</p>
+          )}
         </div>
         {loading ? (
           <div className="text-center py-16 text-gray-400">Loading vehicles...</div>
@@ -134,39 +170,54 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vehicles.map((v) => (
-              <div key={v.id} className="card-hover bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100">
-                <div className="relative h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {v.photo_url ? (
-                    <img src={v.photo_url} alt={`${v.make} ${v.model}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-6xl">🚗</div>
-                  )}
-                  <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white ${v.is_available ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {v.is_available ? '✓ Available' : '✗ Rented'}
-                  </div>
-                </div>
-                <div className="p-4 md:p-5">
-                  <h3 className="font-bold text-lg font-display" style={{ color: '#1c1917' }}>
-                    {v.year} {v.make} {v.model}
-                  </h3>
-                  {v.color && <p className="text-gray-500 text-sm mt-1">{v.color}</p>}
-                  <div className="flex justify-between items-center mt-4">
-                    <div>
-                      <span className="text-2xl font-black" style={{ color: '#ea580c' }}>${v.daily_rate}</span>
-                      <span className="text-gray-400 text-sm">/day</span>
-                    </div>
-                    {v.is_available && (
-                      <button onClick={() => { setSelectedVehicle(v.id); setShowForm(true) }}
-                        className="px-4 py-2 rounded-xl text-white text-sm font-semibold transition hover:opacity-90"
-                        style={{ background: '#ea580c' }}>
-                        Request
-                      </button>
+            {vehicles.map((v) => {
+              const bookedForDates = isVehicleBooked(v.id)
+              const unavailable = !v.is_available || bookedForDates
+              return (
+                <div key={v.id} className={`card-hover bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 transition-all ${unavailable ? 'opacity-60' : ''}`}>
+                  <div className="relative h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {v.photo_url ? (
+                      <img src={v.photo_url} alt={`${v.make} ${v.model}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-6xl">🚗</div>
                     )}
+                    <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white ${
+                      !v.is_available ? 'bg-red-500' :
+                      bookedForDates ? 'bg-orange-500' :
+                      'bg-green-500'
+                    }`}>
+                      {!v.is_available ? '✗ Rented' :
+                       bookedForDates ? '📅 Unavailable for dates' :
+                       '✓ Available'}
+                    </div>
+                  </div>
+                  <div className="p-4 md:p-5">
+                    <h3 className="font-bold text-lg font-display" style={{ color: '#1c1917' }}>
+                      {v.year} {v.make} {v.model}
+                    </h3>
+                    {v.color && <p className="text-gray-500 text-sm mt-1">{v.color}</p>}
+                    {bookedForDates && (
+                      <p className="text-orange-500 text-xs mt-2 font-medium">
+                        Already booked for your selected dates. Try different dates.
+                      </p>
+                    )}
+                    <div className="flex justify-between items-center mt-4">
+                      <div>
+                        <span className="text-2xl font-black" style={{ color: '#ea580c' }}>${v.daily_rate}</span>
+                        <span className="text-gray-400 text-sm">/day</span>
+                      </div>
+                      {!unavailable && (
+                        <button onClick={() => { setSelectedVehicle(v.id); setShowForm(true) }}
+                          className="px-4 py-2 rounded-xl text-white text-sm font-semibold transition hover:opacity-90"
+                          style={{ background: '#ea580c' }}>
+                          Request
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
@@ -200,7 +251,7 @@ export default function Home() {
         <p>© {new Date().getFullYear()} D&K Car Rentals. All rights reserved.</p>
       </footer>
 
-      {/* Booking Modal - slides up from bottom on mobile */}
+      {/* Booking Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-6 md:p-8 w-full sm:max-w-lg shadow-2xl max-h-[92vh] overflow-y-auto">
@@ -224,30 +275,46 @@ export default function Home() {
                 <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 text-base" placeholder="optional" />
               </div>
+              {/* Date pickers — availability checks happen here */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">From *</label>
-                  <input required type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})}
+                  <input required type="date" value={formData.start_date}
+                    onChange={e => handleDateChange('start_date', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-orange-400 text-base" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">To *</label>
-                  <input required type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})}
+                  <input required type="date" value={formData.end_date}
+                    onChange={e => handleDateChange('end_date', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-orange-400 text-base" />
                 </div>
               </div>
+
+              {/* Vehicle picker with availability */}
               {vehicles.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Preferred Vehicle</label>
                   <select value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 text-base">
                     <option value="">Any available vehicle</option>
-                    {vehicles.filter(v => v.is_available).map(v => (
-                      <option key={v.id} value={v.id}>{v.year} {v.make} {v.model} — ${v.daily_rate}/day</option>
-                    ))}
+                    {vehicles.map(v => {
+                      const booked = isVehicleBooked(v.id)
+                      const unavailable = !v.is_available || booked
+                      return (
+                        <option key={v.id} value={v.id} disabled={unavailable}>
+                          {v.year} {v.make} {v.model} — ${v.daily_rate}/day
+                          {!v.is_available ? ' (Rented)' : booked ? ' (Unavailable for dates)' : ''}
+                        </option>
+                      )
+                    })}
                   </select>
+                  {formData.start_date && formData.end_date && bookedVehicleIds.size > 0 && (
+                    <p className="text-orange-500 text-xs mt-1">⚠️ Some vehicles are unavailable for your selected dates</p>
+                  )}
                 </div>
               )}
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Message</label>
                 <textarea value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})}
