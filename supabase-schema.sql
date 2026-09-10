@@ -1,7 +1,11 @@
 -- ============================================
--- D&K Car Rentals - Supabase Database Schema
--- Run this in your Supabase SQL Editor
+-- D&K Car Rentals - Supabase Database Schema (v2)
+-- Run this in your Supabase SQL Editor on a NEW project.
+-- Already have v1 tables? Run supabase-migration-v2.sql instead.
 -- ============================================
+
+-- Needed for the "no overlapping rentals per vehicle" constraint below.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- Vehicles table
 CREATE TABLE vehicles (
@@ -9,14 +13,16 @@ CREATE TABLE vehicles (
   vehicle_id TEXT UNIQUE NOT NULL,
   make TEXT NOT NULL,
   model TEXT NOT NULL,
-  year INTEGER NOT NULL,
+  year INTEGER NOT NULL CHECK (year BETWEEN 1900 AND 2100),
   color TEXT,
   license_plate TEXT UNIQUE NOT NULL,
-  daily_rate DECIMAL(10,2) NOT NULL,
-  is_available BOOLEAN DEFAULT true,
+  daily_rate DECIMAL(10,2) NOT NULL CHECK (daily_rate >= 0),
+  -- "Listed for rent on the website". Day-to-day availability is derived
+  -- from the rentals table, not from this flag.
+  is_available BOOLEAN NOT NULL DEFAULT true,
   photo_url TEXT,
   notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Renters table
@@ -26,8 +32,9 @@ CREATE TABLE renters (
   phone TEXT NOT NULL,
   email TEXT,
   id_number TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX renters_phone_idx ON renters (phone);
 
 -- Rentals table
 CREATE TABLE rentals (
@@ -36,13 +43,21 @@ CREATE TABLE rentals (
   renter_id UUID REFERENCES renters(id) ON DELETE SET NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
-  daily_rate DECIMAL(10,2) NOT NULL,
-  total_charge DECIMAL(10,2) NOT NULL,
-  payment_status TEXT CHECK (payment_status IN ('paid', 'unpaid', 'partial')) DEFAULT 'unpaid',
-  amount_paid DECIMAL(10,2) DEFAULT 0,
+  daily_rate DECIMAL(10,2) NOT NULL CHECK (daily_rate >= 0),
+  total_charge DECIMAL(10,2) NOT NULL CHECK (total_charge >= 0),
+  payment_status TEXT NOT NULL CHECK (payment_status IN ('paid', 'unpaid', 'partial')) DEFAULT 'unpaid',
+  amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (amount_paid >= 0),
   notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT rentals_dates_check CHECK (end_date >= start_date),
+  -- A vehicle can only be rented to one person at a time (dates are inclusive).
+  CONSTRAINT rentals_no_overlap EXCLUDE USING gist (
+    vehicle_id WITH =,
+    daterange(start_date, end_date, '[]') WITH &&
+  ) WHERE (vehicle_id IS NOT NULL)
 );
+CREATE INDEX rentals_vehicle_dates_idx ON rentals (vehicle_id, start_date, end_date);
+CREATE INDEX rentals_renter_idx ON rentals (renter_id);
 
 -- Rental requests (from public website)
 CREATE TABLE rental_requests (
@@ -54,44 +69,32 @@ CREATE TABLE rental_requests (
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   message TEXT,
-  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT rental_requests_dates_check CHECK (end_date >= start_date)
 );
+CREATE INDEX rental_requests_status_idx ON rental_requests (status, created_at DESC);
 
--- Auto-update vehicle availability when rental is created
-CREATE OR REPLACE FUNCTION update_vehicle_availability()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE vehicles SET is_available = false WHERE id = NEW.vehicle_id;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE vehicles SET is_available = true WHERE id = OLD.vehicle_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER rental_vehicle_availability
-AFTER INSERT OR DELETE ON rentals
-FOR EACH ROW EXECUTE FUNCTION update_vehicle_availability();
-
--- Enable Row Level Security (public read for vehicles)
+-- ============================================
+-- Row Level Security
+--
+-- The browser only ever uses the anon key, and only to read vehicles.
+-- Everything else goes through the app's API routes, which use the
+-- service_role key. The service role bypasses RLS entirely, so no policies
+-- are needed for it.
+-- ============================================
 ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE renters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rentals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rental_requests ENABLE ROW LEVEL SECURITY;
 
--- Public can read vehicles
-CREATE POLICY "Public can view vehicles" ON vehicles FOR SELECT USING (true);
+-- Public can read vehicles that are listed for rent.
+CREATE POLICY "Public can view listed vehicles" ON vehicles
+  FOR SELECT TO anon, authenticated USING (is_available = true);
 
--- Public can insert rental requests
-CREATE POLICY "Public can submit requests" ON rental_requests FOR INSERT WITH CHECK (true);
-
--- Service role has full access (used by admin API routes)
-CREATE POLICY "Service role full access vehicles" ON vehicles USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access renters" ON renters USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access rentals" ON rentals USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access requests" ON rental_requests USING (auth.role() = 'service_role');
+-- No other policies: anon cannot read renters, rentals or requests, and
+-- cannot write anything. Booking requests are inserted server-side after
+-- validation (app/api/requests).
 
 -- Sample vehicle data (optional - remove if not needed)
 INSERT INTO vehicles (vehicle_id, make, model, year, color, license_plate, daily_rate, is_available) VALUES

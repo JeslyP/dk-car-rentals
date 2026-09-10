@@ -1,81 +1,101 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase, Vehicle } from '@/lib/supabase'
+import { api } from '@/lib/api-client'
+import type { Vehicle } from '@/lib/supabase'
+import { formatMoney } from '@/lib/rentals'
 
 const emptyForm = { vehicle_id: '', make: '', model: '', year: new Date().getFullYear(), color: '', license_plate: '', daily_rate: 0, is_available: true, photo_url: '', notes: '' }
+type Form = typeof emptyForm
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState<Form>(emptyForm)
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const load = async () => {
-    const { data } = await supabase.from('vehicles').select('*').order('created_at')
-    setVehicles(data || [])
+    try { setVehicles(await api.get<Vehicle[]>('/api/admin/vehicles')) }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not load vehicles.') }
   }
   useEffect(() => { load() }, [])
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    if (editing) {
-      await supabase.from('vehicles').update(form).eq('id', editing)
-    } else {
-      await supabase.from('vehicles').insert([form])
+    setError('')
+    try {
+      if (editing) await api.patch(`/api/admin/vehicles/${editing}`, form)
+      else await api.post('/api/admin/vehicles', form)
+      setShowForm(false)
+      setEditing(null)
+      setForm(emptyForm)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save vehicle.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-    setShowForm(false)
-    setEditing(null)
-    setForm(emptyForm)
-    load()
   }
 
   const toggleAvailability = async (v: Vehicle) => {
-    await supabase.from('vehicles').update({ is_available: !v.is_available }).eq('id', v.id)
-    load()
+    try {
+      await api.patch(`/api/admin/vehicles/${v.id}`, { is_available: !v.is_available })
+      await load()
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not update vehicle.') }
   }
 
   const deleteVehicle = async (id: string) => {
-    if (!confirm('Delete this vehicle? This cannot be undone.')) return
-    await supabase.from('vehicles').delete().eq('id', id)
-    load()
+    if (!confirm('Delete this vehicle? Past rentals will keep their records but lose the vehicle link. This cannot be undone.')) return
+    try {
+      await api.delete(`/api/admin/vehicles/${id}`)
+      await load()
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not delete vehicle.') }
   }
 
+  const startEdit = (v: Vehicle) => {
+    setForm({ vehicle_id: v.vehicle_id, make: v.make, model: v.model, year: v.year, color: v.color || '', license_plate: v.license_plate, daily_rate: Number(v.daily_rate), is_available: v.is_available, photo_url: v.photo_url || '', notes: v.notes || '' })
+    setEditing(v.id)
+    setError('')
+    setShowForm(true)
+  }
+
+  const num = (v: string) => (v === '' ? 0 : Number(v))
+
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-8">
+      <div className="flex justify-between items-center mb-8 gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold text-gray-800">Vehicles</h1>
           <p className="text-gray-400 mt-1">Manage your fleet</p>
         </div>
-        <button onClick={() => { setForm(emptyForm); setEditing(null); setShowForm(true) }}
-          className="px-5 py-3 rounded-xl text-white font-semibold transition hover:opacity-90" style={{ background: '#ea580c' }}>
+        <button onClick={() => { setForm(emptyForm); setEditing(null); setError(''); setShowForm(true) }}
+          className="px-5 py-3 rounded-xl text-white font-semibold transition hover:opacity-90 whitespace-nowrap" style={{ background: '#ea580c' }}>
           + Add Vehicle
         </button>
       </div>
+
+      {error && !showForm && <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div>}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {vehicles.map(v => (
           <div key={v.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
             <div className="h-40 bg-gray-100 flex items-center justify-center overflow-hidden relative">
               {v.photo_url ? <img src={v.photo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-5xl">🚗</span>}
-              <button onClick={() => toggleAvailability(v)}
+              <button onClick={() => toggleAvailability(v)} title="Toggle whether this vehicle is listed for rent"
                 className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white cursor-pointer ${v.is_available ? 'bg-green-500' : 'bg-red-500'}`}>
-                {v.is_available ? '✓ Available' : '✗ Rented'}
+                {v.is_available ? '✓ Listed' : '✗ Not listed'}
               </button>
             </div>
             <div className="p-5">
               <h3 className="font-bold text-lg text-gray-800">{v.year} {v.make} {v.model}</h3>
               <p className="text-gray-400 text-sm">{v.license_plate} {v.color ? `• ${v.color}` : ''}</p>
               <div className="flex justify-between items-center mt-4">
-                <span className="text-xl font-black text-orange-500">${v.daily_rate}<span className="text-gray-400 text-sm font-normal">/day</span></span>
+                <span className="text-xl font-black text-orange-500">{formatMoney(v.daily_rate)}<span className="text-gray-400 text-sm font-normal">/day</span></span>
                 <div className="flex gap-2">
-                  <button onClick={() => { setForm({ ...v, photo_url: v.photo_url || '', notes: v.notes || '', color: v.color || '' }); setEditing(v.id); setShowForm(true) }}
-                    className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm transition">✏️ Edit</button>
-                  <button onClick={() => deleteVehicle(v.id)}
-                    className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-sm transition">🗑️</button>
+                  <button onClick={() => startEdit(v)} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm transition">✏️ Edit</button>
+                  <button onClick={() => deleteVehicle(v.id)} className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-sm transition">🗑️</button>
                 </div>
               </div>
             </div>
@@ -89,10 +109,9 @@ export default function VehiclesPage() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-display text-2xl font-bold text-gray-800">{editing ? 'Edit Vehicle' : 'Add Vehicle'}</h3>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
@@ -123,7 +142,7 @@ export default function VehiclesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Year *</label>
-                  <input required type="number" value={form.year} onChange={e => setForm({...form, year: parseInt(e.target.value)})}
+                  <input required type="number" min={1900} max={2100} value={form.year} onChange={e => setForm({...form, year: num(e.target.value)})}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" />
                 </div>
               </div>
@@ -135,13 +154,13 @@ export default function VehiclesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Daily Rate ($) *</label>
-                  <input required type="number" step="0.01" value={form.daily_rate} onChange={e => setForm({...form, daily_rate: parseFloat(e.target.value)})}
+                  <input required type="number" min={0} step="0.01" value={form.daily_rate} onChange={e => setForm({...form, daily_rate: num(e.target.value)})}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Photo URL</label>
-                <input value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})}
+                <input type="url" value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" placeholder="https://..." />
               </div>
               <div>
@@ -151,8 +170,9 @@ export default function VehiclesPage() {
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="avail" checked={form.is_available} onChange={e => setForm({...form, is_available: e.target.checked})} className="w-4 h-4" />
-                <label htmlFor="avail" className="text-sm font-semibold text-gray-700">Available for rent</label>
+                <label htmlFor="avail" className="text-sm font-semibold text-gray-700">Listed for rent on the website</label>
               </div>
+              {error && <p className="text-red-500 text-sm">{error}</p>}
               <button type="submit" disabled={saving}
                 className="w-full py-4 rounded-xl text-white font-bold text-lg transition hover:opacity-90 disabled:opacity-50"
                 style={{ background: '#ea580c' }}>

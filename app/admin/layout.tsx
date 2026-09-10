@@ -1,30 +1,58 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
+import { api } from '@/lib/api-client'
+
+type AuthState = 'checking' | 'anonymous' | 'authed'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState(false)
+  const [auth, setAuth] = useState<AuthState>('checking')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
-    const a = sessionStorage.getItem('dk_admin')
-    if (a === 'true') setAuthed(true)
+    api.get<{ authenticated: boolean }>('/api/admin/session')
+      .then(r => setAuth(r.authenticated ? 'authed' : 'anonymous'))
+      .catch(() => setAuth('anonymous'))
   }, [])
 
-  const login = (e: React.FormEvent) => {
+  // Any admin API call that comes back 401 (expired cookie) drops us to the login form.
+  useEffect(() => {
+    const onUnauthorized = () => setAuth('anonymous')
+    window.addEventListener('dk-admin-unauthorized', onUnauthorized)
+    return () => window.removeEventListener('dk-admin-unauthorized', onUnauthorized)
+  }, [])
+
+  const login = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'dkrentals2024')) {
-      sessionStorage.setItem('dk_admin', 'true')
-      setAuthed(true)
-    } else {
-      setError('Incorrect password. Try again.')
+    setBusy(true)
+    setError('')
+    try {
+      await api.post('/api/admin/login', { password })
+      setPassword('')
+      setAuth('authed')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed.')
+    } finally {
+      setBusy(false)
     }
   }
 
-  if (!authed) {
+  const logout = useCallback(async () => {
+    await api.post('/api/admin/logout').catch(() => null)
+    setAuth('anonymous')
+  }, [])
+
+  // Invoice pages render without the admin chrome so they print cleanly.
+  const bare = /^\/admin\/rentals\/[^/]+\/invoice/.test(pathname)
+
+  if (auth === 'checking') {
+    return <div className="min-h-screen flex items-center justify-center text-gray-400" style={{ background: '#1c1917' }}>Loading…</div>
+  }
+
+  if (auth === 'anonymous') {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#1c1917' }}>
         <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
@@ -34,12 +62,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <h2 className="font-display text-3xl font-bold mb-2" style={{ color: '#1c1917' }}>Admin Portal</h2>
           <p className="text-gray-400 text-sm mb-8">D&K Car Rentals Management</p>
           <form onSubmit={login} className="space-y-4">
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus autoComplete="current-password"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 text-base"
               placeholder="Enter admin password" />
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            <button type="submit" className="w-full py-3 rounded-xl text-white font-bold transition hover:opacity-90" style={{ background: '#ea580c' }}>
-              Login
+            <button type="submit" disabled={busy || !password} className="w-full py-3 rounded-xl text-white font-bold transition hover:opacity-90 disabled:opacity-50" style={{ background: '#ea580c' }}>
+              {busy ? 'Signing in…' : 'Login'}
             </button>
           </form>
           <a href="/" className="text-sm text-gray-400 hover:text-gray-600 mt-6 block">← Back to website</a>
@@ -48,14 +76,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
+  if (bare) return <>{children}</>
+
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: '📊' },
+    { href: '/admin/calendar', label: 'Calendar', icon: '📅' },
     { href: '/admin/vehicles', label: 'Vehicles', icon: '🚗' },
     { href: '/admin/rentals', label: 'Rentals', icon: '📋' },
     { href: '/admin/renters', label: 'Renters', icon: '👥' },
     { href: '/admin/requests', label: 'Requests', icon: '📬' },
     { href: '/admin/reports', label: 'Reports', icon: '📈' },
   ]
+  const isActive = (href: string) => href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
 
   return (
     <div className="flex min-h-screen">
@@ -74,9 +106,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {navItems.map(item => (
             <a key={item.href} href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
-                pathname === item.href ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                isActive(item.href) ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
-              style={pathname === item.href ? { background: '#ea580c' } : {}}>
+              style={isActive(item.href) ? { background: '#ea580c' } : {}}>
               <span>{item.icon}</span>
               {item.label}
             </a>
@@ -86,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <a href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm transition">
             🌐 View Website
           </a>
-          <button onClick={() => { sessionStorage.removeItem('dk_admin'); setAuthed(false) }}
+          <button onClick={logout}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 text-sm w-full transition">
             🚪 Logout
           </button>
@@ -101,25 +133,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <div className="flex items-center gap-3">
           <a href="/" className="text-gray-400 text-xs">🌐 Site</a>
-          <button onClick={() => { sessionStorage.removeItem('dk_admin'); setAuthed(false) }}
-            className="text-gray-400 text-xs">🚪 Out</button>
+          <button onClick={logout} className="text-gray-400 text-xs">🚪 Out</button>
         </div>
       </div>
 
       {/* Main content */}
-      <main className="flex-1 bg-gray-50 overflow-auto md:pb-0 pb-20 pt-14 md:pt-0">
+      <main className="flex-1 bg-gray-50 overflow-auto md:pb-0 pb-20 pt-14 md:pt-0 min-w-0">
         {children}
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200" style={{ background: '#1c1917' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 overflow-x-auto" style={{ background: '#1c1917' }}>
         {navItems.map(item => (
           <a key={item.href} href={item.href}
-            className={`flex-1 flex flex-col items-center justify-center py-2 text-xs transition ${
-              pathname === item.href ? 'text-orange-400' : 'text-gray-500'
+            className={`flex-1 min-w-[56px] flex flex-col items-center justify-center py-2 text-xs transition ${
+              isActive(item.href) ? 'text-orange-400' : 'text-gray-500'
             }`}>
             <span className="text-lg leading-none mb-1">{item.icon}</span>
-            <span className="text-xs">{item.label}</span>
+            <span className="text-[10px]">{item.label}</span>
           </a>
         ))}
       </nav>
