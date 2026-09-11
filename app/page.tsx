@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase, Vehicle } from '@/lib/supabase'
+import { formatMoney, todayString } from '@/lib/rentals'
 
 export default function Home() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -12,33 +13,30 @@ export default function Home() {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', start_date: '', end_date: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [formError, setFormError] = useState('')
+  const today = todayString()
 
   useEffect(() => {
-    supabase.from('vehicles').select('*').order('created_at').then(({ data }) => {
+    supabase.from('vehicles').select('*').eq('is_available', true).order('created_at').then(({ data }) => {
       setVehicles(data || [])
       setLoading(false)
     })
   }, [])
 
-  // Check which vehicles are booked when dates change
+  // Ask the server which vehicles are already booked for the chosen dates.
   const checkAvailability = async (start_date: string, end_date: string) => {
-    if (!start_date || !end_date) {
+    if (!start_date || !end_date || end_date < start_date) {
       setBookedVehicleIds(new Set())
       return
     }
-    // Find rentals that overlap with the selected date range
-    const { data } = await supabase
-      .from('rentals')
-      .select('vehicle_id')
-      .lte('start_date', end_date)
-      .gte('end_date', start_date)
-
-    const booked = new Set<string>((data || []).map((r: any) => r.vehicle_id))
-    setBookedVehicleIds(booked)
-
-    // If the currently selected vehicle is now booked, deselect it
-    if (selectedVehicle && booked.has(selectedVehicle)) {
-      setSelectedVehicle('')
+    try {
+      const res = await fetch(`/api/availability?start=${start_date}&end=${end_date}`)
+      const body = await res.json()
+      const booked = new Set<string>(res.ok ? body.booked : [])
+      setBookedVehicleIds(booked)
+      if (selectedVehicle && booked.has(selectedVehicle)) setSelectedVehicle('')
+    } catch {
+      setBookedVehicleIds(new Set())
     }
   }
 
@@ -53,14 +51,28 @@ export default function Home() {
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    await supabase.from('rental_requests').insert([{
-      ...formData,
-      requested_vehicle_id: selectedVehicle || null,
-      status: 'pending'
-    }])
-    setSubmitting(false)
-    setSubmitted(true)
-    setShowForm(false)
+    setFormError('')
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, requested_vehicle_id: selectedVehicle || null }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setFormError(body.error || 'Something went wrong. Please try again.')
+        return
+      }
+      setSubmitted(true)
+      setShowForm(false)
+      setFormData({ name: '', phone: '', email: '', start_date: '', end_date: '', message: '' })
+      setSelectedVehicle('')
+      setBookedVehicleIds(new Set())
+    } catch {
+      setFormError('Could not reach the server. Please check your connection and try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const isVehicleBooked = (vehicleId: string) => bookedVehicleIds.has(vehicleId)
@@ -172,7 +184,7 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {vehicles.map((v) => {
               const bookedForDates = isVehicleBooked(v.id)
-              const unavailable = !v.is_available || bookedForDates
+              const unavailable = bookedForDates
               return (
                 <div key={v.id} className={`card-hover bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 transition-all ${unavailable ? 'opacity-60' : ''}`}>
                   <div className="relative h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -181,14 +193,8 @@ export default function Home() {
                     ) : (
                       <div className="text-6xl">🚗</div>
                     )}
-                    <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white ${
-                      !v.is_available ? 'bg-red-500' :
-                      bookedForDates ? 'bg-orange-500' :
-                      'bg-green-500'
-                    }`}>
-                      {!v.is_available ? '✗ Rented' :
-                       bookedForDates ? '📅 Unavailable for dates' :
-                       '✓ Available'}
+                    <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white ${bookedForDates ? 'bg-orange-500' : 'bg-green-500'}`}>
+                      {bookedForDates ? '📅 Unavailable for dates' : '✓ Available'}
                     </div>
                   </div>
                   <div className="p-4 md:p-5">
@@ -203,7 +209,7 @@ export default function Home() {
                     )}
                     <div className="flex justify-between items-center mt-4">
                       <div>
-                        <span className="text-2xl font-black" style={{ color: '#ea580c' }}>${v.daily_rate}</span>
+                        <span className="text-2xl font-black" style={{ color: '#ea580c' }}>{formatMoney(v.daily_rate)}</span>
                         <span className="text-gray-400 text-sm">/day</span>
                       </div>
                       {!unavailable && (
@@ -279,13 +285,13 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">From *</label>
-                  <input required type="date" value={formData.start_date}
+                  <input required type="date" min={today} value={formData.start_date}
                     onChange={e => handleDateChange('start_date', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-orange-400 text-base" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">To *</label>
-                  <input required type="date" value={formData.end_date}
+                  <input required type="date" min={formData.start_date || today} value={formData.end_date}
                     onChange={e => handleDateChange('end_date', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-orange-400 text-base" />
                 </div>
@@ -300,11 +306,9 @@ export default function Home() {
                     <option value="">Any available vehicle</option>
                     {vehicles.map(v => {
                       const booked = isVehicleBooked(v.id)
-                      const unavailable = !v.is_available || booked
                       return (
-                        <option key={v.id} value={v.id} disabled={unavailable}>
-                          {v.year} {v.make} {v.model} — ${v.daily_rate}/day
-                          {!v.is_available ? ' (Rented)' : booked ? ' (Unavailable for dates)' : ''}
+                        <option key={v.id} value={v.id} disabled={booked}>
+                          {v.year} {v.make} {v.model} — {formatMoney(v.daily_rate)}/day{booked ? ' (Unavailable for dates)' : ''}
                         </option>
                       )
                     })}
@@ -320,6 +324,7 @@ export default function Home() {
                 <textarea value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 resize-none text-base" rows={3} placeholder="Any special requests..." />
               </div>
+              {formError && <p className="text-red-500 text-sm">{formError}</p>}
               <button type="submit" disabled={submitting}
                 className="w-full py-4 rounded-xl text-white font-bold text-lg transition hover:opacity-90 disabled:opacity-50"
                 style={{ background: '#ea580c' }}>

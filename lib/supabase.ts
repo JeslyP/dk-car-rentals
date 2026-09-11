@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+/**
+ * Browser-side Supabase client using the public anon key. With row level
+ * security enabled it can only read the vehicles table. Everything else goes
+ * through the API routes in app/api.
+ */
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://not-configured.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'not-configured'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -27,12 +32,13 @@ export type Renter = {
   email: string | null
   id_number: string | null
   created_at: string
+  rentals?: { count: number }[]
 }
 
 export type Rental = {
   id: string
-  vehicle_id: string
-  renter_id: string
+  vehicle_id: string | null
+  renter_id: string | null
   start_date: string
   end_date: string
   daily_rate: number
@@ -41,8 +47,8 @@ export type Rental = {
   amount_paid: number
   notes: string | null
   created_at: string
-  vehicle?: Vehicle
-  renter?: Renter
+  vehicle?: Vehicle | null
+  renter?: Renter | null
 }
 
 export type RentalRequest = {
@@ -56,5 +62,5 @@ export type RentalRequest = {
   message: string | null
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
-  vehicle?: Vehicle
+  vehicle?: Vehicle | null
 }
