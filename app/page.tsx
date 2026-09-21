@@ -187,9 +187,14 @@ export default function Home() {
               const unavailable = bookedForDates
               return (
                 <div key={v.id} className={`card-hover bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 transition-all ${unavailable ? 'opacity-60' : ''}`}>
-                  <div className="relative h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <div className="relative aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
                     {v.photo_url ? (
-                      <img src={v.photo_url} alt={`${v.make} ${v.model}`} className="w-full h-full object-cover" />
+                      <>
+                        <img src={v.photo_url} alt="" aria-hidden="true"
+                          className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-50" />
+                        <img src={v.photo_url} alt={`${v.year} ${v.make} ${v.model}`}
+                          className="relative w-full h-full object-contain" />
+                      </>
                     ) : (
                       <div className="text-6xl">🚗</div>
                     )}
