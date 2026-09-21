@@ -1,7 +1,8 @@
 -- ============================================
--- D&K Car Rentals - Supabase Database Schema (v2)
+-- D&K Car Rentals - Supabase Database Schema (v3)
 -- Run this in your Supabase SQL Editor on a NEW project.
--- Already have v1 tables? Run supabase-migration-v2.sql instead.
+-- Already have older tables? Run the supabase-migration-*.sql files in order
+-- (v2 then v3) instead of this file.
 -- ============================================
 
 -- Needed for the "no overlapping rentals per vehicle" constraint below.
@@ -75,6 +76,71 @@ CREATE TABLE rental_requests (
 );
 CREATE INDEX rental_requests_status_idx ON rental_requests (status, created_at DESC);
 
+-- Payments against a rental. Money is taxed in the month it is received, so
+-- every payment carries its own date. rentals.amount_paid is maintained
+-- automatically from this table by the trigger below.
+CREATE TABLE payments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  rental_id UUID NOT NULL REFERENCES rentals(id) ON DELETE CASCADE,
+  paid_on DATE NOT NULL,
+  amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+  method TEXT CHECK (method IN ('cash', 'transfer', 'card', 'cheque', 'other')) DEFAULT 'cash',
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX payments_rental_idx ON payments (rental_id);
+CREATE INDEX payments_paid_on_idx ON payments (paid_on DESC);
+
+CREATE OR REPLACE FUNCTION sync_rental_payment_totals()
+RETURNS TRIGGER AS $$
+DECLARE
+  target UUID;
+  total DECIMAL(10,2);
+  charge DECIMAL(10,2);
+BEGIN
+  target := COALESCE(NEW.rental_id, OLD.rental_id);
+  IF target IS NULL THEN
+    RETURN NULL;
+  END IF;
+  SELECT COALESCE(SUM(amount), 0) INTO total FROM payments WHERE rental_id = target;
+  SELECT total_charge INTO charge FROM rentals WHERE id = target;
+  IF charge IS NULL THEN
+    RETURN NULL;
+  END IF;
+  UPDATE rentals SET
+    amount_paid = total,
+    payment_status = CASE
+      WHEN total <= 0 THEN 'unpaid'
+      WHEN total >= charge THEN 'paid'
+      ELSE 'partial'
+    END
+  WHERE id = target;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER payments_sync_rental
+AFTER INSERT OR UPDATE OR DELETE ON payments
+FOR EACH ROW EXECUTE FUNCTION sync_rental_payment_totals();
+
+-- Running costs. vehicle_id NULL means a business-wide cost not tied to one car.
+CREATE TABLE expenses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+  spent_on DATE NOT NULL,
+  category TEXT NOT NULL CHECK (category IN (
+    'fuel', 'maintenance', 'repair', 'tires', 'parts', 'insurance',
+    'registration', 'cleaning', 'towing', 'loan', 'fees', 'other'
+  )),
+  amount DECIMAL(10,2) NOT NULL CHECK (amount >= 0),
+  vendor TEXT,
+  description TEXT,
+  odometer INTEGER CHECK (odometer IS NULL OR odometer >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX expenses_spent_on_idx ON expenses (spent_on DESC);
+CREATE INDEX expenses_vehicle_idx ON expenses (vehicle_id, spent_on DESC);
+
 -- ============================================
 -- Row Level Security
 --
@@ -87,6 +153,8 @@ ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE renters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rentals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rental_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
 -- Public can read vehicles that are listed for rent.
 CREATE POLICY "Public can view listed vehicles" ON vehicles

@@ -80,12 +80,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: '📊' },
+    { href: '/admin/reports', label: 'Money', icon: '💵' },
+    { href: '/admin/rentals', label: 'Rentals', icon: '📋' },
+    { href: '/admin/expenses', label: 'Costs', icon: '🧾' },
     { href: '/admin/calendar', label: 'Calendar', icon: '📅' },
     { href: '/admin/vehicles', label: 'Vehicles', icon: '🚗' },
-    { href: '/admin/rentals', label: 'Rentals', icon: '📋' },
     { href: '/admin/renters', label: 'Renters', icon: '👥' },
     { href: '/admin/requests', label: 'Requests', icon: '📬' },
-    { href: '/admin/reports', label: 'Reports', icon: '📈' },
   ]
   const isActive = (href: string) => href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
 

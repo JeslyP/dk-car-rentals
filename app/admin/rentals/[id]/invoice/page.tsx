@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { api } from '@/lib/api-client'
-import type { Rental } from '@/lib/supabase'
+import type { Payment, Rental } from '@/lib/supabase'
 import { balanceDue, formatDate, formatMoney, rentalDays } from '@/lib/rentals'
 
 const BUSINESS = {
@@ -15,11 +15,13 @@ const BUSINESS = {
 export default function InvoicePage() {
   const params = useParams<{ id: string }>()
   const [rental, setRental] = useState<Rental | null>(null)
+  const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (!params?.id) return
     api.get<Rental>(`/api/admin/rentals/${params.id}`).then(setRental).catch(e => setError(e instanceof Error ? e.message : 'Could not load invoice.'))
+    api.get<Payment[]>(`/api/admin/payments?rental_id=${params.id}`).then(setPayments).catch(() => setPayments([]))
   }, [params?.id])
 
   if (error) return <div className="p-8 text-red-600">{error} <a href="/admin/rentals" className="underline ml-2">Back</a></div>
@@ -118,6 +120,23 @@ export default function InvoicePage() {
             </div>
           </div>
         </div>
+
+        {payments.length > 0 && (
+          <div className="mt-8 text-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Payments received</p>
+            <table className="w-full">
+              <tbody>
+                {[...payments].reverse().map(p => (
+                  <tr key={p.id} className="border-b border-gray-100">
+                    <td className="py-2 text-gray-600">{formatDate(p.paid_on)}</td>
+                    <td className="py-2 text-gray-500 capitalize">{p.method || 'other'}</td>
+                    <td className="py-2 text-right text-gray-800">{formatMoney(p.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {rental.notes && (
           <div className="mt-8 text-sm">

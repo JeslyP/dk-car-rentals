@@ -1,4 +1,5 @@
 import { isValidDateString } from './rentals'
+import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from './finance'
 
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string }
 
@@ -65,8 +66,10 @@ export function validateDateRange(start: unknown, end: unknown): ValidationResul
 export const WRITABLE_COLUMNS = {
   vehicles: ['vehicle_id', 'make', 'model', 'year', 'color', 'license_plate', 'daily_rate', 'is_available', 'photo_url', 'notes'],
   renters: ['name', 'phone', 'email', 'id_number'],
-  rentals: ['vehicle_id', 'renter_id', 'start_date', 'end_date', 'daily_rate', 'total_charge', 'payment_status', 'amount_paid', 'notes'],
+  rentals: ['vehicle_id', 'renter_id', 'start_date', 'end_date', 'daily_rate', 'total_charge', 'notes'],
   rental_requests: ['status'],
+  expenses: ['vehicle_id', 'spent_on', 'category', 'amount', 'vendor', 'description', 'odometer'],
+  payments: ['rental_id', 'paid_on', 'amount', 'method', 'notes'],
 } as const
 
 export type AdminResource = keyof typeof WRITABLE_COLUMNS
@@ -84,12 +87,35 @@ export function pickWritable(resource: AdminResource, body: unknown): Record<str
   return out
 }
 
+/** Column names as a person would say them, for error messages. */
+const FIELD_LABELS: Record<string, string> = {
+  vehicle_id: 'Vehicle ID',
+  license_plate: 'License plate',
+  daily_rate: 'Daily rate',
+  total_charge: 'Total charge',
+  renter_id: 'Renter',
+  start_date: 'Start date',
+  end_date: 'End date',
+  spent_on: 'Date',
+  paid_on: 'Payment date',
+  rental_id: 'Rental',
+  make: 'Make',
+  model: 'Model',
+  year: 'Year',
+  name: 'Name',
+  phone: 'Phone',
+  category: 'Category',
+  amount: 'Amount',
+}
+
+const label = (key: string) => FIELD_LABELS[key] || key
+
 /** Extra checks that depend on the resource. Returns an error string or null. */
 export function validateWrite(resource: AdminResource, data: Record<string, unknown>, isUpdate: boolean): string | null {
   const required = (keys: string[]) => {
     if (isUpdate) return null
     for (const k of keys) {
-      if (data[k] === undefined || data[k] === null || data[k] === '') return `${k} is required.`
+      if (data[k] === undefined || data[k] === null || data[k] === '') return `${label(k)} is required.`
     }
     return null
   }
@@ -97,8 +123,8 @@ export function validateWrite(resource: AdminResource, data: Record<string, unkn
     case 'vehicles': {
       const err = required(['vehicle_id', 'make', 'model', 'year', 'license_plate', 'daily_rate'])
       if (err) return err
-      if (data.daily_rate !== undefined && (typeof data.daily_rate !== 'number' || data.daily_rate < 0)) return 'daily_rate must be a non-negative number.'
-      if (data.year !== undefined && (typeof data.year !== 'number' || data.year < 1900 || data.year > 2100)) return 'year must be a valid year.'
+      if (data.daily_rate !== undefined && (typeof data.daily_rate !== 'number' || data.daily_rate < 0)) return 'Daily rate must be a non-negative number.'
+      if (data.year !== undefined && (typeof data.year !== 'number' || data.year < 1900 || data.year > 2100)) return 'Please enter a valid year.'
       return null
     }
     case 'renters':
@@ -106,17 +132,33 @@ export function validateWrite(resource: AdminResource, data: Record<string, unkn
     case 'rentals': {
       const err = required(['vehicle_id', 'renter_id', 'start_date', 'end_date', 'daily_rate', 'total_charge'])
       if (err) return err
-      if (data.start_date !== undefined && !isValidDateString(data.start_date)) return 'start_date must be YYYY-MM-DD.'
-      if (data.end_date !== undefined && !isValidDateString(data.end_date)) return 'end_date must be YYYY-MM-DD.'
-      if (data.start_date && data.end_date && (data.end_date as string) < (data.start_date as string)) return 'end_date must be on or after start_date.'
-      for (const k of ['daily_rate', 'total_charge', 'amount_paid']) {
-        if (data[k] !== undefined && data[k] !== null && (typeof data[k] !== 'number' || (data[k] as number) < 0)) return `${k} must be a non-negative number.`
+      if (data.start_date !== undefined && !isValidDateString(data.start_date)) return 'Please choose a valid start date.'
+      if (data.end_date !== undefined && !isValidDateString(data.end_date)) return 'Please choose a valid end date.'
+      if (data.start_date && data.end_date && (data.end_date as string) < (data.start_date as string)) return 'The end date must be on or after the start date.'
+      for (const k of ['daily_rate', 'total_charge']) {
+        if (data[k] !== undefined && data[k] !== null && (typeof data[k] !== 'number' || (data[k] as number) < 0)) return `${label(k)} must be a non-negative number.`
       }
-      if (data.payment_status !== undefined && !['paid', 'unpaid', 'partial'].includes(String(data.payment_status))) return 'payment_status is invalid.'
       return null
     }
     case 'rental_requests':
-      if (!['pending', 'approved', 'rejected'].includes(String(data.status))) return 'status is invalid.'
+      if (!['pending', 'approved', 'rejected'].includes(String(data.status))) return 'That status is not valid.'
       return null
+    case 'expenses': {
+      const err = required(['spent_on', 'category', 'amount'])
+      if (err) return err
+      if (data.spent_on !== undefined && !isValidDateString(data.spent_on)) return 'Please choose a valid date.'
+      if (data.category !== undefined && !EXPENSE_CATEGORIES.includes(String(data.category) as never)) return 'Please choose a valid category.'
+      if (data.amount !== undefined && (typeof data.amount !== 'number' || data.amount < 0)) return 'Amount must be a non-negative number.'
+      if (data.odometer !== undefined && data.odometer !== null && (typeof data.odometer !== 'number' || data.odometer < 0)) return 'Odometer must be a non-negative number.'
+      return null
+    }
+    case 'payments': {
+      const err = required(['rental_id', 'paid_on', 'amount'])
+      if (err) return err
+      if (data.paid_on !== undefined && !isValidDateString(data.paid_on)) return 'Please choose a valid payment date.'
+      if (data.amount !== undefined && (typeof data.amount !== 'number' || data.amount <= 0)) return 'Payment amount must be greater than zero.'
+      if (data.method !== undefined && data.method !== null && !PAYMENT_METHODS.includes(String(data.method) as never)) return 'Please choose a valid payment method.'
+      return null
+    }
   }
 }

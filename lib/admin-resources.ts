@@ -9,6 +9,8 @@ export const RESOURCES: Record<AdminResource, { select: string; order: { column:
   renters: { select: '*, rentals(count)', order: { column: 'name', ascending: true } },
   rentals: { select: '*, vehicle:vehicles(*), renter:renters(*)', order: { column: 'start_date', ascending: false } },
   rental_requests: { select: '*, vehicle:vehicles(*)', order: { column: 'created_at', ascending: false } },
+  expenses: { select: '*, vehicle:vehicles(*)', order: { column: 'spent_on', ascending: false } },
+  payments: { select: '*, rental:rentals(id, vehicle_id, renter_id)', order: { column: 'paid_on', ascending: false } },
 }
 
 /** URL segment → table name. */
@@ -17,6 +19,8 @@ export const RESOURCE_BY_PATH: Record<string, AdminResource> = {
   renters: 'renters',
   rentals: 'rentals',
   requests: 'rental_requests',
+  expenses: 'expenses',
+  payments: 'payments',
 }
 
 export function resolveResource(segment: string): AdminResource | null {

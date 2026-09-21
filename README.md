@@ -11,13 +11,33 @@ A full-stack web app for managing D&K Car Rentals — built with **Next.js 14**,
 - Optional email notification to you (and a confirmation to the customer) on every request
 
 ### 🔐 Admin Dashboard (`/admin`)
-- **Dashboard** — vehicles free today, active and upcoming rentals, unpaid balance, month revenue
+The admin side is built around the bookkeeping: what each vehicle earned, what it
+cost to run, and what is left over at the end of the month.
+
+- **Dashboard** — this month's money received, costs paid and profit, compared with last month, plus who still owes you
+- **Money** — the monthly (or yearly) profit and loss statement: per-vehicle profit, cost breakdown, month-by-month history, print and CSV export
+- **Rentals** — log rentals and record each payment with the date it arrived
+- **Costs** — log fuel, repairs, insurance, registration and the rest, per vehicle or business-wide
 - **Calendar** — month timeline showing who has which vehicle on which days
 - **Vehicles** — add/edit/delete vehicles, list or unlist them from the website
-- **Rentals** — log rentals, record payments, edit, delete, and print an invoice
 - **Renters** — customer database with search and rental counts
 - **Requests** — approve a booking request and turn it into a rental in one click, or reject it
-- **Reports** — revenue by vehicle, top renters, collection rate, period filtering
+
+### 💵 How the money side works
+- **Every payment carries its own date.** Money counts towards the month it was
+  actually received, which is what you normally report for tax. A rental that ran
+  in September but was paid in October shows as October income.
+- A rental's paid total and status are calculated from its payments, so the two
+  can never drift apart. You never type a "paid" figure directly.
+- **Costs** are recorded against a vehicle, or against the business when they are
+  not tied to one car. Categories are fuel, maintenance, repairs, tires, parts,
+  insurance, registration, cleaning, towing, loan, fees and other.
+- The report shows two views of income side by side: **money received** (cash
+  basis, the profit headline) and **invoiced** (the full price of rentals that
+  started in the period, paid or not) with the amount still owed.
+- **Print** gives a clean one-page statement. **Export CSV** gives your
+  accountant the same figures as a spreadsheet, plus a one-row-per-cost export
+  from the Costs page.
 
 ### 🔒 Security model
 - The admin password lives **only on the server** (`ADMIN_PASSWORD`). Logging in sets a signed, `httpOnly` cookie that expires after 7 days.
@@ -42,9 +62,21 @@ A full-stack web app for managing D&K Car Rentals — built with **Next.js 14**,
 1. In Supabase, click **SQL Editor** in the left sidebar
 2. Paste the entire contents of **`supabase-schema.sql`** and click **Run**
 
-**Already running the previous version of this app:**
-1. Paste **`supabase-migration-v2.sql`** into the SQL Editor and click **Run** instead. It removes the old availability trigger, adds the constraints, and tightens the security policies without touching your data.
-2. If it reports that the overlap constraint could not be created, you have two rentals for the same vehicle with overlapping dates. Fix them in the admin, then run the file again.
+**Already running an earlier version of this app:**
+Run the migration files in order in the SQL Editor, instead of the schema file:
+
+1. **`supabase-migration-v2.sql`** — removes the old availability trigger, adds the
+   constraints, and tightens the security policies without touching your data.
+   If it reports that the overlap constraint could not be created, you have two
+   rentals for the same vehicle with overlapping dates. Fix them in the admin,
+   then run the file again.
+2. **`supabase-migration-v3.sql`** — adds the `payments` and `expenses` tables that
+   the money report needs. Any amount already marked as paid is converted into a
+   payment dated on the rental's start date, so no money is lost. If some of those
+   dates are wrong for your records, open the rental's Payment panel and re-enter
+   them.
+
+Both files are safe to run more than once.
 
 ### Step 3 — Get Your Supabase Keys
 
@@ -94,7 +126,7 @@ Until all three are set, requests are still saved and shown in the admin; you ju
 
 ```bash
 npm run typecheck   # TypeScript
-npm test            # unit tests (vitest) for rental math, auth tokens, validation, email
+npm test            # unit tests (vitest) for rental and money maths, auth, validation, email
 npm run build       # production build
 ```
 
@@ -129,14 +161,15 @@ dk-car-rentals/
 │   ├── globals.css               # Global styles
 │   ├── admin/
 │   │   ├── layout.tsx            # Admin login + sidebar
-│   │   ├── page.tsx              # Dashboard
+│   │   ├── page.tsx              # Dashboard (this month's money)
+│   │   ├── expenses/             # Running costs per vehicle
+│   │   ├── reports/              # Monthly profit and loss, print + CSV
 │   │   ├── calendar/             # Month timeline of rentals per vehicle
 │   │   ├── vehicles/             # Vehicle management
 │   │   ├── rentals/              # Rental logging, payments
 │   │   │   └── [id]/invoice/     # Printable invoice
 │   │   ├── renters/              # Customer database
-│   │   ├── requests/             # Online booking requests
-│   │   └── reports/              # Financial reports
+│   │   └── requests/             # Online booking requests
 │   └── api/
 │       ├── admin/login|logout|session   # Cookie-based admin auth
 │       ├── admin/[resource]/...         # Admin CRUD (vehicles, renters, rentals, requests)
@@ -145,6 +178,7 @@ dk-car-rentals/
 ├── lib/
 │   ├── auth.ts                   # Session token signing/verification, rate limiting
 │   ├── rentals.ts                # Date/money helpers (billable days, overlap, status)
+│   ├── finance.ts                # Monthly totals, per-vehicle profit, CSV export
 │   ├── validation.ts             # Input validation and writable-column allowlists
 │   ├── email.ts                  # Resend integration (no-op when unconfigured)
 │   ├── supabase.ts               # Browser client (anon key) + TypeScript types
@@ -152,7 +186,8 @@ dk-car-rentals/
 ├── middleware.ts                 # Protects /api/admin/*
 ├── tests/                        # Vitest unit tests
 ├── supabase-schema.sql           # Fresh install
-├── supabase-migration-v2.sql     # Upgrade an existing database
+├── supabase-migration-v2.sql     # Upgrade: constraints + RLS
+├── supabase-migration-v3.sql     # Upgrade: payments + expenses (bookkeeping)
 └── .env.local.example            # Copy to .env.local and fill in
 ```
 
