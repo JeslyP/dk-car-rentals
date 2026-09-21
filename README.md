@@ -14,7 +14,7 @@ A full-stack web app for managing D&K Car Rentals — built with **Next.js 14**,
 The admin side is built around the bookkeeping: what each vehicle earned, what it
 cost to run, and what is left over at the end of the month.
 
-- **Dashboard** — this month's money received, costs paid and profit, compared with last month, plus who still owes you
+- **Dashboard** — the month's statement: gross income from all vehicles, the government's percentage set aside, the cost of operation broken into repairs, gasoline, car washes and other, and the net profit left over
 - **Money** — the monthly (or yearly) profit and loss statement: per-vehicle profit, cost breakdown, month-by-month history, print and CSV export
 - **Rentals** — log rentals and record each payment with the date it arrived
 - **Costs** — log fuel, repairs, insurance, registration and the rest, per vehicle or business-wide
@@ -36,6 +36,25 @@ that already exists is reused, a new one is created, and the From date carries o
 to the next row so a sequence of rentals is fast to enter. Ticking Paid records the
 full charge as received on the To date, which you can correct later if the money
 actually arrived on a different day.
+
+### 🧮 The monthly statement
+The dashboard answers one question: what did the business actually keep this month?
+
+```
+  Gross income from all vehicles      money received in the month
+− Government tax                      12% of the gross by default
+− Cost of operation                   repairs + gasoline + car washes + other
+─────────────────────────────────────
+= Net profit
+```
+
+Repairs covers servicing, parts and tires. Other covers insurance, registration,
+towing, financing and fees, so every cost lands in exactly one group and the four
+always add up to the total. Use the arrows to step back through previous months,
+and Print for a copy on paper.
+
+The tax percentage is set with `NEXT_PUBLIC_TAX_RATE` (default 12). Change it in
+`.env.local` or in Vercel and redeploy.
 
 ### 💵 How the money side works
 - **Every payment carries its own date.** Money counts towards the month it was
@@ -161,6 +180,7 @@ The same three commands run in GitHub Actions on every push and pull request (`.
    - `ADMIN_PASSWORD`
    - `ADMIN_SESSION_SECRET` (recommended — `openssl rand -hex 32`)
    - `NEXT_PUBLIC_SITE_URL` — your Vercel URL, used for links in emails
+   - `NEXT_PUBLIC_TAX_RATE` — the government's percentage of gross income (default 12)
    - the optional `RESEND_*` / `NOTIFY_EMAIL` / `EMAIL_FROM` / `NEXT_PUBLIC_BUSINESS_*` values if you use them
 4. Click **Deploy** — your site will be live at `yourproject.vercel.app`.
 5. Changing an environment variable later? Redeploy from the Vercel dashboard so it takes effect.

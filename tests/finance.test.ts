@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  csvCell, currentMonthKey, expensesCsv, monthEnd, monthKey, monthLabel, monthStart,
-  monthsBetween, periodRange, shiftMonthKey, shortMonthLabel, statementCsv, summarise, toCsv, vehicleLabel,
+  COST_GROUPS, EXPENSE_CATEGORIES, costGroupFor, csvCell, currentMonthKey, expensesCsv,
+  groupCosts, monthEnd, monthKey, monthLabel, monthStart, monthlyStatement, monthsBetween,
+  parseTaxRate, periodRange, shiftMonthKey, shortMonthLabel, statementCsv, summarise,
+  toCsv, vehicleLabel,
 } from '@/lib/finance'
+import { round2 } from '@/lib/rentals'
 
 const vehicles = [
   { id: 'v1', year: 2018, make: 'Honda', model: 'Fit' },
@@ -195,16 +198,120 @@ describe('csv', () => {
   })
   it('writes a statement containing the headline figures', () => {
     const csv = statementCsv(march, 'March 2026')
-    expect(csv).toContain('Money collected,340.00')
-    expect(csv).toContain('Expenses,495.00')
-    expect(csv).toContain('Net profit,-155.00')
+    expect(csv).toContain('Gross income received,340.00')
+    expect(csv).toContain('Total running costs,495.00')
     expect(csv).toContain('2018 Honda Fit')
-    expect(csv).toContain('Repairs,300.00')
+    expect(csv).toContain('Expenses by category')
   })
   it('writes one row per expense', () => {
     const csv = expensesCsv([{ ...expenses[1], vehicle: vehicles[0], vendor: 'Ace Garage', description: 'brake pads' }])
     const lines = csv.split('\r\n')
     expect(lines[0]).toBe('Date,Vehicle,Category,Amount,Vendor,Description')
     expect(lines[1]).toBe('2026-03-11,2018 Honda Fit,Repairs,300.00,Ace Garage,brake pads')
+  })
+})
+
+describe('cost groups', () => {
+  it('puts every category in exactly one group', () => {
+    const grouped = Object.values(COST_GROUPS).flat() as string[]
+    expect([...grouped].sort()).toEqual([...EXPENSE_CATEGORIES].sort())
+    expect(new Set(grouped).size).toBe(grouped.length)
+  })
+  it('maps a category to its group, unknown ones to other', () => {
+    expect(costGroupFor('fuel')).toBe('gasoline')
+    expect(costGroupFor('cleaning')).toBe('washes')
+    expect(costGroupFor('tires')).toBe('repairs')
+    expect(costGroupFor('maintenance')).toBe('repairs')
+    expect(costGroupFor('insurance')).toBe('other')
+    expect(costGroupFor('something-new')).toBe('other')
+  })
+  it('totals each group and the whole', () => {
+    const g = groupCosts(march.byCategory)
+    // March: repair 300, fuel 75, insurance 120
+    expect(g.repairs).toBe(300)
+    expect(g.gasoline).toBe(75)
+    expect(g.washes).toBe(0)
+    expect(g.other).toBe(120)
+    expect(g.total).toBe(495)
+  })
+  it('never loses or double counts a dollar', () => {
+    const g = groupCosts(march.byCategory)
+    expect(g.repairs + g.gasoline + g.washes + g.other).toBe(g.total)
+    expect(g.total).toBe(march.expenses)
+  })
+})
+
+describe('parseTaxRate', () => {
+  it('defaults to 12 and rejects nonsense', () => {
+    expect(parseTaxRate(undefined)).toBe(12)
+    expect(parseTaxRate('')).toBe(12)
+    expect(parseTaxRate('abc')).toBe(12)
+    expect(parseTaxRate(-1)).toBe(12)
+    expect(parseTaxRate(101)).toBe(12)
+  })
+  it('accepts a number or a numeric string', () => {
+    expect(parseTaxRate(10)).toBe(10)
+    expect(parseTaxRate('7.5')).toBe(7.5)
+    expect(parseTaxRate(0)).toBe(0)
+    expect(parseTaxRate(100)).toBe(100)
+  })
+})
+
+describe('monthlyStatement', () => {
+  const st = monthlyStatement(march, 12)
+
+  it('takes the tax off the gross income', () => {
+    expect(st.gross).toBe(340)
+    expect(st.taxRate).toBe(12)
+    expect(st.tax).toBe(40.8)
+  })
+  it('subtracts tax and costs to reach net profit', () => {
+    expect(st.costs.total).toBe(495)
+    expect(st.netProfit).toBe(round2(340 - 40.8 - 495))
+    expect(st.gross - st.tax - st.costs.total).toBeCloseTo(st.netProfit)
+  })
+  it('shows a loss when costs outrun income', () => {
+    expect(st.netProfit).toBeLessThan(0)
+  })
+  it('handles a month with no income', () => {
+    const empty = monthlyStatement(summarise({ rentals: [], payments: [], expenses: [], vehicles: [] }, '2026-01-01', '2026-01-31'))
+    expect(empty.gross).toBe(0)
+    expect(empty.tax).toBe(0)
+    expect(empty.netProfit).toBe(0)
+    expect(empty.margin).toBe(0)
+  })
+  it('works out a profitable month end to end', () => {
+    const good = summarise({
+      vehicles,
+      rentals: [],
+      payments: [{ id: 'p', rental_id: null, paid_on: '2026-05-10', amount: 1000 }],
+      expenses: [
+        { id: 'a', vehicle_id: 'v1', spent_on: '2026-05-01', category: 'fuel', amount: 100 },
+        { id: 'b', vehicle_id: 'v1', spent_on: '2026-05-02', category: 'cleaning', amount: 50 },
+        { id: 'c', vehicle_id: 'v1', spent_on: '2026-05-03', category: 'repair', amount: 150 },
+      ],
+    }, '2026-05-01', '2026-05-31')
+    const s = monthlyStatement(good, 12)
+    expect(s.gross).toBe(1000)
+    expect(s.tax).toBe(120)
+    expect(s.costs).toMatchObject({ repairs: 150, gasoline: 100, washes: 50, other: 0, total: 300 })
+    expect(s.netProfit).toBe(580)
+    expect(s.margin).toBeCloseTo(0.58)
+  })
+  it('falls back to 12% when given a bad rate', () => {
+    expect(monthlyStatement(march, -5 as number).taxRate).toBe(12)
+  })
+})
+
+describe('statement csv carries the tax line', () => {
+  it('lists gross, tax, each cost group and net profit', () => {
+    const csv = statementCsv(march, 'March 2026', 12)
+    expect(csv).toContain('Gross income received,340.00')
+    expect(csv).toContain('Government tax (12% of gross),40.80')
+    expect(csv).toContain('Repairs,300.00')
+    expect(csv).toContain('Gasoline,75.00')
+    expect(csv).toContain('Car washes,0.00')
+    expect(csv).toContain('Total running costs,495.00')
+    expect(csv).toContain('Net profit,-195.80')
   })
 })

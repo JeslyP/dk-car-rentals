@@ -86,8 +86,12 @@ export function balanceDue(totalCharge: number, amountPaid: number): number {
 }
 
 export function formatMoney(n: number | string | null | undefined): string {
-  const num = typeof n === 'string' ? parseFloat(n) : (n ?? 0)
-  return `$${(Number.isFinite(num) ? num : 0).toFixed(2)}`
+  const parsed = typeof n === 'string' ? parseFloat(n) : (n ?? 0)
+  const num = Number.isFinite(parsed) ? parsed : 0
+  // Decide the sign after rounding, so a value that rounds to zero is not
+  // shown as "-$0.00". The sign belongs in front of the symbol: -$5.00.
+  const cents = Math.round(num * 100)
+  return `${cents < 0 ? '-' : ''}$${(Math.abs(cents) / 100).toFixed(2)}`
 }
 
 export function formatDate(d: DateString): string {

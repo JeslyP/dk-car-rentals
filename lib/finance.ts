@@ -30,7 +30,7 @@ export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   parts: 'Parts',
   insurance: 'Insurance',
   registration: 'Registration / licensing',
-  cleaning: 'Cleaning',
+  cleaning: 'Car wash',
   towing: 'Towing',
   loan: 'Loan / financing',
   fees: 'Fees',
@@ -288,6 +288,85 @@ export function summarise(input: SummaryInput, from: string, to: string): Summar
   }
 }
 
+// ------------------------------------------------------- monthly statement
+
+/**
+ * The running costs grouped the way the business thinks about them. Every
+ * category belongs to exactly one group, so the groups always add up to the
+ * total spend with nothing counted twice and nothing left out.
+ */
+export const COST_GROUPS = {
+  repairs: ['repair', 'maintenance', 'parts', 'tires'],
+  gasoline: ['fuel'],
+  washes: ['cleaning'],
+  other: ['insurance', 'registration', 'towing', 'loan', 'fees', 'other'],
+} as const
+
+export type CostGroup = keyof typeof COST_GROUPS
+
+export const COST_GROUP_LABELS: Record<CostGroup, string> = {
+  repairs: 'Repairs',
+  gasoline: 'Gasoline',
+  washes: 'Car washes',
+  other: 'Other costs',
+}
+
+/** Which group a category falls into. Unknown categories fall to "other". */
+export function costGroupFor(category: string): CostGroup {
+  for (const [group, members] of Object.entries(COST_GROUPS)) {
+    if ((members as readonly string[]).includes(category)) return group as CostGroup
+  }
+  return 'other'
+}
+
+export type CostBreakdown = Record<CostGroup, number> & { total: number }
+
+/** Total each cost group from a summary's category totals. */
+export function groupCosts(byCategory: { category: string; amount: number }[]): CostBreakdown {
+  const out: CostBreakdown = { repairs: 0, gasoline: 0, washes: 0, other: 0, total: 0 }
+  for (const row of byCategory) {
+    const group = costGroupFor(row.category)
+    out[group] = round2(out[group] + row.amount)
+    out.total = round2(out.total + row.amount)
+  }
+  return out
+}
+
+/** The government's share is a percentage, kept between 0 and 100. */
+export const DEFAULT_TAX_RATE = 12
+
+export function parseTaxRate(value: unknown, fallback = DEFAULT_TAX_RATE): number {
+  const n = typeof value === 'number' ? value : parseFloat(String(value ?? ''))
+  if (!Number.isFinite(n) || n < 0 || n > 100) return fallback
+  return n
+}
+
+export type Statement = {
+  /** Money received from all vehicles in the period. */
+  gross: number
+  taxRate: number
+  /** Set aside for the government, taken off the gross. */
+  tax: number
+  costs: CostBreakdown
+  /** gross − tax − costs. What the business actually keeps. */
+  netProfit: number
+  /** Share of the gross that is kept, 0 when nothing came in. */
+  margin: number
+}
+
+/**
+ * The month's figures in the order they are read:
+ *   gross income − government tax − running costs = net profit
+ */
+export function monthlyStatement(summary: Summary, taxRate = DEFAULT_TAX_RATE): Statement {
+  const rate = parseTaxRate(taxRate)
+  const gross = round2(summary.collected)
+  const tax = round2((gross * rate) / 100)
+  const costs = groupCosts(summary.byCategory)
+  const netProfit = round2(gross - tax - costs.total)
+  return { gross, taxRate: rate, tax, costs, netProfit, margin: gross > 0 ? netProfit / gross : 0 }
+}
+
 // ---------------------------------------------------------------- csv
 
 /** A plain number, including a negative or decimal one. */
@@ -311,16 +390,23 @@ export function toCsv(rows: (string | number | null | undefined)[][]): string {
 }
 
 /** The rows of a monthly statement, ready to hand to an accountant. */
-export function statementCsv(summary: Summary, periodTitle: string): string {
+export function statementCsv(summary: Summary, periodTitle: string, taxRate = DEFAULT_TAX_RATE): string {
+  const st = monthlyStatement(summary, taxRate)
   const rows: (string | number | null)[][] = [
     ['D&K Car Rentals — financial statement'],
     ['Period', periodTitle],
     ['Dates', `${summary.from} to ${summary.to}`],
     [],
     ['Summary'],
-    ['Money collected', summary.collected.toFixed(2)],
-    ['Expenses', summary.expenses.toFixed(2)],
-    ['Net profit', summary.net.toFixed(2)],
+    ['Gross income received', st.gross.toFixed(2)],
+    [`Government tax (${st.taxRate}% of gross)`, st.tax.toFixed(2)],
+    ['Repairs', st.costs.repairs.toFixed(2)],
+    ['Gasoline', st.costs.gasoline.toFixed(2)],
+    ['Car washes', st.costs.washes.toFixed(2)],
+    ['Other costs', st.costs.other.toFixed(2)],
+    ['Total running costs', st.costs.total.toFixed(2)],
+    ['Net profit', st.netProfit.toFixed(2)],
+    [],
     ['Invoiced in period', summary.charged.toFixed(2)],
     ['Still owed on those rentals', summary.outstanding.toFixed(2)],
     [],

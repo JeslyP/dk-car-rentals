@@ -4,9 +4,12 @@ import { api } from '@/lib/api-client'
 import type { Expense, Payment, Rental, Vehicle } from '@/lib/supabase'
 import { formatDate, formatMoney } from '@/lib/rentals'
 import {
-  currentMonthKey, monthEnd, monthLabel, monthStart, shiftMonthKey,
-  shortMonthLabel, statementCsv, summarise,
+  COST_GROUP_LABELS, CostGroup, currentMonthKey, monthEnd, monthLabel, monthStart,
+  monthlyStatement, parseTaxRate, shiftMonthKey, shortMonthLabel, statementCsv, summarise,
 } from '@/lib/finance'
+
+const TAX_RATE = parseTaxRate(process.env.NEXT_PUBLIC_TAX_RATE)
+const GROUP_ORDER: CostGroup[] = ['repairs', 'gasoline', 'washes', 'other']
 
 type Scope = 'month' | 'year' | 'all'
 
@@ -45,8 +48,10 @@ export default function ReportsPage() {
     [rentals, payments, expenses, vehicles, from, to],
   )
 
+  const st = monthlyStatement(summary, TAX_RATE)
+
   const downloadCsv = () => {
-    const blob = new Blob([`﻿${statementCsv(summary, title)}`], { type: 'text/csv;charset=utf-8' })
+    const blob = new Blob([`﻿${statementCsv(summary, title, TAX_RATE)}`], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -55,7 +60,7 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url)
   }
 
-  const profitable = summary.net >= 0
+  const profitable = st.netProfit >= 0
   const monthsToShow = scope === 'month' ? [] : summary.byMonth.filter(m => m.collected || m.expenses)
 
   return (
@@ -107,24 +112,41 @@ export default function ReportsPage() {
         {scope !== 'all' && <> · {formatDate(from)} to {formatDate(to)}</>}
       </p>
 
-      {/* Headline: the three numbers that matter */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 print-plain">
-          <p className="text-gray-400 text-sm">Money received</p>
-          <p className="text-3xl font-black text-green-600 mt-1">{loading ? '—' : formatMoney(summary.collected)}</p>
-          <p className="text-gray-400 text-xs mt-1">{summary.paymentCount} payment{summary.paymentCount === 1 ? '' : 's'}</p>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 print-plain">
-          <p className="text-gray-400 text-sm">Costs paid out</p>
-          <p className="text-3xl font-black text-red-600 mt-1">{loading ? '—' : formatMoney(summary.expenses)}</p>
-          <p className="text-gray-400 text-xs mt-1">{summary.expenseCount} entr{summary.expenseCount === 1 ? 'y' : 'ies'}</p>
-        </div>
-        <div className="rounded-2xl p-6 shadow-sm text-white print-plain" style={{ background: profitable ? '#15803d' : '#b91c1c' }}>
-          <p className="opacity-80 text-sm">Profit{profitable ? '' : ' (loss)'}</p>
-          <p className="text-3xl font-black mt-1">{loading ? '—' : formatMoney(summary.net)}</p>
-          <p className="opacity-80 text-xs mt-1">
-            {summary.collected > 0 ? `${(summary.margin * 100).toFixed(0)}% of money received` : 'Nothing received yet'}
-          </p>
+      {/* Headline statement: gross − tax − costs = net */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-4 print-plain">
+        <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <tbody>
+            <tr>
+              <td className="py-2.5 text-gray-700">Gross income from all vehicles</td>
+              <td className="py-2.5 text-right text-gray-400 text-xs">{summary.paymentCount} payment{summary.paymentCount === 1 ? '' : 's'}</td>
+              <td className="py-2.5 text-right font-semibold text-gray-900 w-32">{loading ? '—' : formatMoney(st.gross)}</td>
+            </tr>
+            <tr className="border-t border-gray-100">
+              <td className="py-2.5 text-gray-700">Government tax</td>
+              <td className="py-2.5 text-right text-gray-400 text-xs">{st.taxRate}% of gross</td>
+              <td className="py-2.5 text-right font-semibold text-red-600">− {loading ? '—' : formatMoney(st.tax)}</td>
+            </tr>
+            <tr className="border-t border-gray-100">
+              <td className="py-2.5 text-gray-700">Cost of operation</td>
+              <td className="py-2.5 text-right text-gray-400 text-xs">{summary.expenseCount} entr{summary.expenseCount === 1 ? 'y' : 'ies'}</td>
+              <td className="py-2.5 text-right font-semibold text-red-600">− {loading ? '—' : formatMoney(st.costs.total)}</td>
+            </tr>
+            <tr className="border-t-2 border-gray-800">
+              <td className="pt-4 font-bold text-gray-900">{profitable ? 'Net profit' : 'Net loss'}</td>
+              <td className="pt-4 text-right text-gray-400 text-xs">{st.gross > 0 ? `${(st.margin * 100).toFixed(0)}% of gross` : ''}</td>
+              <td className={`pt-4 text-right text-2xl font-black ${profitable ? 'text-green-700' : 'text-red-600'}`}>
+                {loading ? '—' : formatMoney(st.netProfit)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="mt-5 grid sm:grid-cols-4 gap-3 text-sm border-t border-gray-100 pt-4">
+          {GROUP_ORDER.map(g => (
+            <div key={g}>
+              <p className="text-gray-400 text-xs">{COST_GROUP_LABELS[g]}</p>
+              <p className="font-semibold text-gray-800" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatMoney(st.costs[g])}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -145,6 +167,7 @@ export default function ReportsPage() {
         <p className="text-xs text-gray-400 mt-4 border-t border-gray-100 pt-3">
           The profit figure above counts money on the date it was actually received, which is what you normally report for tax.
           The invoiced figure counts the full price of rentals that started in the period, paid or not.
+          Tax is worked out at {st.taxRate}% of the gross income received; change it with the NEXT_PUBLIC_TAX_RATE setting.
         </p>
       </div>
 
