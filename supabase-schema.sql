@@ -125,6 +125,26 @@ CREATE TRIGGER payments_sync_rental
 AFTER INSERT OR UPDATE OR DELETE ON payments
 FOR EACH ROW EXECUTE FUNCTION sync_rental_payment_totals();
 
+-- Removing a rental takes its payments out of the books with it, otherwise
+-- the money keeps counting as income with no vehicle to attribute it to.
+CREATE OR REPLACE FUNCTION cascade_rental_soft_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN
+    UPDATE payments SET deleted_at = NEW.deleted_at
+    WHERE rental_id = NEW.id AND deleted_at IS NULL;
+  ELSIF NEW.deleted_at IS NULL AND OLD.deleted_at IS NOT NULL THEN
+    UPDATE payments SET deleted_at = NULL
+    WHERE rental_id = NEW.id AND deleted_at = OLD.deleted_at;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SET search_path = public, pg_temp;
+
+CREATE TRIGGER rentals_cascade_soft_delete
+AFTER UPDATE OF deleted_at ON rentals
+FOR EACH ROW EXECUTE FUNCTION cascade_rental_soft_delete();
+
 -- Running costs. vehicle_id NULL means a business-wide cost not tied to one car.
 CREATE TABLE expenses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

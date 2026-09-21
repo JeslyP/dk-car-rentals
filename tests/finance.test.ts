@@ -315,3 +315,40 @@ describe('statement csv carries the tax line', () => {
     expect(csv).toContain('Net profit,-195.80')
   })
 })
+
+describe('money from a removed rental', () => {
+  // The API hides deleted rows, so a removed rental never reaches the report.
+  // Its payments must be hidden too. When they were not, the money still
+  // counted as income and, with no rental to look up, was attributed to no
+  // vehicle at all. Migration v8 hides them in the database; this pins the
+  // arithmetic that made the bug visible.
+  const live = { id: 'r-live', vehicle_id: 'v1', start_date: '2026-03-01', end_date: '2026-03-03', total_charge: 200, amount_paid: 200 }
+
+  it('counts only payments whose rental is still there', () => {
+    const s = summarise({
+      vehicles,
+      rentals: [live],
+      payments: [
+        { id: 'p-live', rental_id: 'r-live', paid_on: '2026-03-02', amount: 200 },
+      ],
+      expenses: [],
+    }, '2026-03-01', '2026-03-31')
+    expect(s.collected).toBe(200)
+    expect(s.byVehicle.find(v => v.vehicleId === null)).toBeUndefined()
+  })
+
+  it('shows what went wrong before the fix: orphaned money with no vehicle', () => {
+    const s = summarise({
+      vehicles,
+      rentals: [live],
+      // A payment left behind by a removed rental, as v8 now prevents.
+      payments: [
+        { id: 'p-live', rental_id: 'r-live', paid_on: '2026-03-02', amount: 200 },
+        { id: 'p-orphan', rental_id: 'r-removed', paid_on: '2026-03-05', amount: 450 },
+      ],
+      expenses: [],
+    }, '2026-03-01', '2026-03-31')
+    expect(s.collected).toBe(650)
+    expect(s.byVehicle.find(v => v.vehicleId === null)?.collected).toBe(450)
+  })
+})
