@@ -103,6 +103,16 @@ This matters because these are the figures the business files tax on, and a
 deleted rental used to take all of its payments with it. Nothing the business
 may need to produce years later can now be erased by accident.
 
+**Removed items**, linked at the bottom of the admin sidebar, lists everything a
+delete has hidden. Each entry can be put back, or destroyed for good. Permanent
+deletion exists only there, and only for something already removed, so it can
+never be reached by one stray tap on an ordinary list. The confirmation spells
+out what else goes: destroying a rental takes its payments with it, and
+destroying a vehicle leaves its rentals and costs unassigned.
+
+Keep removed records unless they were entered by mistake. They cost nothing and
+they are the safest place for anything a tax authority might ask about later.
+
 Deleted rows are excluded from every list, every total and every report, so
 the money figures are unaffected. A removed vehicle no longer holds its
 Vehicle ID or license plate, and a removed rental no longer blocks its dates,
@@ -261,6 +271,7 @@ dk-car-rentals/
 │   │   ├── layout.tsx            # Admin login + sidebar
 │   │   ├── page.tsx              # Dashboard (this month's money)
 │   │   ├── expenses/             # Running costs per vehicle
+│   │   ├── removed/              # Put back or permanently destroy deleted records
 │   │   ├── vehicles/[id]/log/    # Printable per-car log sheet + quick entry
 │   │   ├── reports/              # Monthly profit and loss, print + CSV
 │   │   ├── calendar/             # Month timeline of rentals per vehicle
