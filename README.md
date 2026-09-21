@@ -75,7 +75,7 @@ The tax percentage is set with `NEXT_PUBLIC_TAX_RATE` (default 12). Change it in
 ### 🔒 Security model
 - The admin password lives **only on the server** (`ADMIN_PASSWORD`). Logging in sets a signed, `httpOnly` cookie that expires after 7 days.
 - All admin data goes through `/api/admin/*` route handlers, which verify that cookie and then use the Supabase **service role** key server-side.
-- The browser only uses the public anon key, and row level security lets it read nothing but listed vehicles.
+- The browser only uses the public anon key, and row level security lets it read nothing but listed vehicles. The admin tables have no grants for that key at all, so a policy added by mistake later still cannot expose them.
 - The database refuses overlapping rentals for the same vehicle and rentals whose end date is before their start date.
 
 ---
@@ -110,8 +110,13 @@ Run the migration files in order in the SQL Editor, instead of the schema file:
    them.
 3. **`supabase-migration-v4.sql`** — makes a customer's phone number optional,
    because the paper sheets usually record a name only.
+4. **`supabase-migration-v5.sql`** — removes any wide-open "Allow all" policies
+   and takes the default table grants away from the public key. Worth running
+   even on a database you believe is clean: permissive policies get added while
+   debugging and then forgotten, and with them in place anyone who views the
+   website's source can read and delete your customer and payment records.
 
-All three files are safe to run more than once.
+All four files are safe to run more than once.
 
 ### Step 3 — Get Your Supabase Keys
 
@@ -226,6 +231,7 @@ dk-car-rentals/
 ├── supabase-migration-v2.sql     # Upgrade: constraints + RLS
 ├── supabase-migration-v3.sql     # Upgrade: payments + expenses (bookkeeping)
 ├── supabase-migration-v4.sql     # Upgrade: optional customer phone number
+├── supabase-migration-v5.sql     # Upgrade: remove open policies, tighten grants
 └── .env.local.example            # Copy to .env.local and fill in
 ```
 
