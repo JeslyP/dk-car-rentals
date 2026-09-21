@@ -113,6 +113,11 @@ destroying a vehicle leaves its rentals and costs unassigned.
 Keep removed records unless they were entered by mistake. They cost nothing and
 they are the safest place for anything a tax authority might ask about later.
 
+Removing a rental takes its payments with it, so the money stops counting as
+income and no longer needs tax set aside against it. Putting the rental back
+brings exactly those payments back, while a payment removed on its own
+beforehand stays removed.
+
 Deleted rows are excluded from every list, every total and every report, so
 the money figures are unaffected. A removed vehicle no longer holds its
 Vehicle ID or license plate, and a removed rental no longer blocks its dates,
@@ -182,8 +187,11 @@ Run the migration files in order in the SQL Editor, instead of the schema file:
    photos are uploaded into.
 6. **`supabase-migration-v7.sql`** — makes deleting reversible, so a mis-tap can
    never destroy a financial record.
+7. **`supabase-migration-v8.sql`** — makes removing a rental take its payments
+   out of the books too. Run this if you have run v7: without it a removed
+   rental's money keeps counting as income under "Not assigned to a vehicle".
 
-All six files are safe to run more than once.
+All seven files are safe to run more than once.
 
 ### Step 3 — Get Your Supabase Keys
 
@@ -307,6 +315,7 @@ dk-car-rentals/
 ├── supabase-migration-v5.sql     # Upgrade: remove open policies, tighten grants
 ├── supabase-migration-v6.sql     # Upgrade: vehicle photo storage bucket
 ├── supabase-migration-v7.sql     # Upgrade: deleting keeps the record
+├── supabase-migration-v8.sql     # Upgrade: a removed rental takes its payments
 └── .env.local.example            # Copy to .env.local and fill in
 ```
 
