@@ -1,6 +1,6 @@
-# 🚗 D&K Car Rentals
+# 🚗 D&J Car Rentals
 
-A full-stack web app for managing D&K Car Rentals — built with **Next.js 14**, **Supabase**, and **Tailwind CSS**.
+A full-stack web app for managing D&J Car Rentals — built with **Next.js 14**, **Supabase**, and **Tailwind CSS**.
 
 ## What's Included
 
@@ -147,6 +147,11 @@ bottom of `supabase-migration-v7.sql`.
 - The database refuses overlapping rentals for the same vehicle and rentals whose end date is before their start date.
 
 ---
+
+## 🗺️ Changing the code
+`CODE-MAP.md` explains what every file does, which ones are safe to edit, which
+protect the money or the data, and the handful of changes that need editing in
+two places at once.
 
 ## 🚀 Setup Guide (Step by Step)
 

@@ -141,7 +141,7 @@ export default function ExpensesPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `dk-expenses-${scope === 'all' ? 'all-time' : scope === 'year' ? month.slice(0, 4) : month}.csv`
+    a.download = `dj-expenses-${scope === 'all' ? 'all-time' : scope === 'year' ? month.slice(0, 4) : month}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }

@@ -6,7 +6,7 @@ import type { Payment, Rental } from '@/lib/supabase'
 import { balanceDue, formatDate, formatMoney, rentalDays } from '@/lib/rentals'
 
 const BUSINESS = {
-  name: 'D&K Car Rentals',
+  name: 'D&J Car Rentals',
   phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '',
   email: process.env.NEXT_PUBLIC_BUSINESS_EMAIL || '',
   address: process.env.NEXT_PUBLIC_BUSINESS_ADDRESS || '',
@@ -47,7 +47,7 @@ export default function InvoicePage() {
         <div className="flex flex-col sm:flex-row justify-between gap-6 border-b border-gray-200 pb-8">
           <div>
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#ea580c' }}>DK</div>
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#ea580c' }}>DJ</div>
               <div>
                 <p className="font-display text-2xl font-bold text-gray-900">{BUSINESS.name}</p>
                 <p className="text-xs text-gray-400">Rental invoice</p>

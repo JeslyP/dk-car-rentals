@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Migration v7: deleting keeps the record
+-- D&J Car Rentals - Migration v7: deleting keeps the record
 -- Run this ONCE in the Supabase SQL Editor. Safe to re-run.
 -- ============================================
 

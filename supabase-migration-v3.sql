@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Migration v3: bookkeeping
+-- D&J Car Rentals - Migration v3: bookkeeping
 -- Adds dated payments and per-vehicle expenses so monthly profit can be
 -- calculated for tax filing.
 -- Run this ONCE in the Supabase SQL Editor. Safe to re-run.

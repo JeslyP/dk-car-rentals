@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Migration v8: removing a rental takes its payments
+-- D&J Car Rentals - Migration v8: removing a rental takes its payments
 -- Run this ONCE in the Supabase SQL Editor. Safe to re-run.
 -- ============================================
 

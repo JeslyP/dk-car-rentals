@@ -55,7 +55,7 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `dk-statement-${scope === 'all' ? 'all-time' : scope === 'year' ? month.slice(0, 4) : month}.csv`
+    a.download = `dj-statement-${scope === 'all' ? 'all-time' : scope === 'year' ? month.slice(0, 4) : month}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -288,7 +288,7 @@ export default function ReportsPage() {
       </div>
 
       <p className="text-xs text-gray-400 mt-8 text-center">
-        D&amp;K Car Rentals · {title} · printed {new Date().toLocaleDateString()}
+        D&amp;J Car Rentals · {title} · printed {new Date().toLocaleDateString()}
       </p>
     </div>
   )

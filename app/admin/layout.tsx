@@ -58,10 +58,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--nav)' }}>
         <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-6" style={{ background: '#ea580c' }}>
-            DK
+            DJ
           </div>
           <h2 className="font-display text-3xl font-bold mb-2" style={{ color: 'var(--ink)' }}>Admin Portal</h2>
-          <p className="text-gray-400 text-sm mb-8">D&K Car Rentals Management</p>
+          <p className="text-gray-400 text-sm mb-8">D&J Car Rentals Management</p>
           <form onSubmit={login} className="space-y-4">
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus autoComplete="current-password"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 text-base"
@@ -100,9 +100,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="admin-sidebar hidden md:flex w-64 flex-shrink-0 flex-col">
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#ea580c' }}>DK</div>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#ea580c' }}>DJ</div>
             <div>
-              <p className="text-white font-bold text-sm">D&K Car Rentals</p>
+              <p className="text-white font-bold text-sm">D&J Car Rentals</p>
               <p className="text-gray-400 text-xs">Admin Dashboard</p>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile top bar */}
       <div className="admin-mobile-bar md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3" style={{ background: 'var(--nav)' }}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: '#ea580c' }}>DK</div>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: '#ea580c' }}>DJ</div>
           <span className="text-white font-bold text-sm">Admin</span>
         </div>
         <div className="flex items-center gap-3">

@@ -393,7 +393,7 @@ export function toCsv(rows: (string | number | null | undefined)[][]): string {
 export function statementCsv(summary: Summary, periodTitle: string, taxRate = DEFAULT_TAX_RATE): string {
   const st = monthlyStatement(summary, taxRate)
   const rows: (string | number | null)[][] = [
-    ['D&K Car Rentals — financial statement'],
+    ['D&J Car Rentals — financial statement'],
     ['Period', periodTitle],
     ['Dates', `${summary.from} to ${summary.to}`],
     [],

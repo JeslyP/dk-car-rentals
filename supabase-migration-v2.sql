@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Migration from v1 schema to v2
+-- D&J Car Rentals - Migration from v1 schema to v2
 -- Run this ONCE in the Supabase SQL Editor on an EXISTING project.
 -- Safe to re-run: every statement is idempotent.
 -- ============================================

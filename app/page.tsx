@@ -85,9 +85,9 @@ export default function Home() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#ea580c' }}>
-              DK
+              DJ
             </div>
-            <span className="text-white font-bold text-lg font-display tracking-wide">D&K Car Rentals</span>
+            <span className="text-white font-bold text-lg font-display tracking-wide">D&J Car Rentals</span>
           </div>
           {/* Desktop nav */}
           <div className="hidden md:flex gap-6 items-center">
@@ -244,7 +244,7 @@ export default function Home() {
           <p className="text-orange-400 font-semibold tracking-widest text-xs uppercase mb-4">Who We Are</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-6">A Family Business<br />Built on Trust</h2>
           <p className="text-gray-300 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            D&K Car Rentals is a family-owned business committed to providing reliable, affordable transportation.
+            D&J Car Rentals is a family-owned business committed to providing reliable, affordable transportation.
             Every vehicle in our fleet is well-maintained and ready for the road. We treat every customer like family.
           </p>
         </div>
@@ -264,7 +264,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer style={{ background: 'var(--nav)' }} className="py-8 px-4 text-center text-gray-500 text-sm">
-        <p>© {new Date().getFullYear()} D&K Car Rentals. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} D&J Car Rentals. All rights reserved.</p>
         {/* Discreet way in for the owner. The admin itself is password protected. */}
         <a href="/admin"
           className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-full border border-white/15 text-gray-400 hover:text-white hover:border-white/40 transition text-xs font-medium">

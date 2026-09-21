@@ -6,7 +6,7 @@ import { formatDate } from './rentals'
  * following environment variables are set:
  *   RESEND_API_KEY   - API key from Resend
  *   NOTIFY_EMAIL     - where booking notifications should go (the owner)
- *   EMAIL_FROM       - sender, e.g. "D&K Car Rentals <bookings@yourdomain.com>"
+ *   EMAIL_FROM       - sender, e.g. "D&J Car Rentals <bookings@yourdomain.com>"
  * When they are missing the function is a no-op, so local development and
  * fresh deployments keep working without an email provider.
  */
@@ -55,7 +55,7 @@ export function buildBookingNotification(req: BookingRequestInput, vehicleLabel:
   const html = `
     <div style="font-family:system-ui,sans-serif;max-width:560px">
       <h2 style="color:#ea580c;margin-bottom:4px">New booking request</h2>
-      <p style="color:#555;margin-top:0">Submitted from the D&amp;K Car Rentals website.</p>
+      <p style="color:#555;margin-top:0">Submitted from the D&amp;J Car Rentals website.</p>
       <table style="border-collapse:collapse;width:100%">
         ${rows.map(([k, v]) => `<tr><td style="padding:6px 8px;color:#777;border-bottom:1px solid #eee">${k}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${escapeHtml(v)}</td></tr>`).join('')}
       </table>
@@ -68,7 +68,7 @@ export function buildBookingConfirmation(req: BookingRequestInput, vehicleLabel:
   const text = [
     `Hi ${req.name},`,
     '',
-    'Thanks for your booking request with D&K Car Rentals. We have received it and will get back to you shortly.',
+    'Thanks for your booking request with D&J Car Rentals. We have received it and will get back to you shortly.',
     '',
     `Vehicle: ${vehicleLabel || 'Any available vehicle'}`,
     `Dates: ${formatDate(req.start_date)} → ${formatDate(req.end_date)}`,
@@ -76,5 +76,5 @@ export function buildBookingConfirmation(req: BookingRequestInput, vehicleLabel:
     'This is not a confirmed booking yet. We will contact you by phone or email to confirm.',
   ].join('\n')
   const html = `<div style="font-family:system-ui,sans-serif;max-width:560px">${text.split('\n').map(l => `<p style="margin:4px 0">${escapeHtml(l) || '&nbsp;'}</p>`).join('')}</div>`
-  return { subject: 'We received your booking request — D&K Car Rentals', html, text }
+  return { subject: 'We received your booking request — D&J Car Rentals', html, text }
 }
