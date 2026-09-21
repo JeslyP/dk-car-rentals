@@ -58,7 +58,10 @@ export async function verifySessionToken(secret: string, token: string | undefin
 
 /** Server-side config. Throws a clear error when the deployment is not configured. */
 export function getAdminConfig(): { password: string; secret: string } {
-  const password = process.env.ADMIN_PASSWORD
+  // Surrounding whitespace is almost always accidental: a stray space typed on
+  // a phone, or one that rode along when the value was pasted into the hosting
+  // provider. Ignore it on both sides rather than rejecting a correct password.
+  const password = process.env.ADMIN_PASSWORD?.trim()
   if (!password) {
     throw new Error('ADMIN_PASSWORD is not set. Add it to .env.local (or your hosting provider\'s environment variables).')
   }

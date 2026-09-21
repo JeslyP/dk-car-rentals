@@ -17,7 +17,9 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null)
-  const password = typeof body?.password === 'string' ? body.password : ''
+  // Trimmed to match getAdminConfig: a trailing space from a phone keyboard
+  // should not read as the wrong password.
+  const password = typeof body?.password === 'string' ? body.password.trim() : ''
   if (!password || !safeEqual(password, config.password)) {
     return NextResponse.json({ error: 'Incorrect password. Try again.' }, { status: 401 })
   }
