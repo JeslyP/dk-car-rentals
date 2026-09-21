@@ -48,7 +48,7 @@ export default function RentersPage() {
 
   const q = search.trim().toLowerCase()
   const filtered = renters.filter(r =>
-    r.name.toLowerCase().includes(q) || r.phone.includes(q) || (r.email || '').toLowerCase().includes(q)
+    r.name.toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.email || '').toLowerCase().includes(q)
   )
   const rentalCount = (r: Renter) => r.rentals?.[0]?.count ?? 0
 
@@ -93,14 +93,14 @@ export default function RentersPage() {
               ) : filtered.map(r => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-800">{r.name}</td>
-                  <td className="px-6 py-4 text-gray-600">{r.phone}</td>
+                  <td className="px-6 py-4 text-gray-600">{r.phone || '—'}</td>
                   <td className="px-6 py-4 text-gray-500">{r.email || '—'}</td>
                   <td className="px-6 py-4 text-gray-500">{r.id_number || '—'}</td>
                   <td className="px-6 py-4 text-gray-500">{rentalCount(r)}</td>
                   <td className="px-6 py-4 text-gray-400 text-xs">{new Date(r.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4">
                     <div className="flex gap-1">
-                      <button onClick={() => { setForm({ name: r.name, phone: r.phone, email: r.email || '', id_number: r.id_number || '' }); setEditing(r.id); setError(''); setShowForm(true) }}
+                      <button onClick={() => { setForm({ name: r.name, phone: r.phone || '', email: r.email || '', id_number: r.id_number || '' }); setEditing(r.id); setError(''); setShowForm(true) }}
                         className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Edit</button>
                       <button onClick={() => remove(r)} className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition">🗑️</button>
                     </div>
@@ -126,8 +126,8 @@ export default function RentersPage() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Phone *</label>
-                <input required type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
+                <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" />
               </div>
               <div>

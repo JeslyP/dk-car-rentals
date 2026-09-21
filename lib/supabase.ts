@@ -28,7 +28,7 @@ export type Vehicle = {
 export type Renter = {
   id: string
   name: string
-  phone: string
+  phone: string | null
   email: string | null
   id_number: string | null
   created_at: string
@@ -49,6 +49,30 @@ export type Rental = {
   created_at: string
   vehicle?: Vehicle | null
   renter?: Renter | null
+}
+
+export type Payment = {
+  id: string
+  rental_id: string
+  paid_on: string
+  amount: number
+  method: 'cash' | 'transfer' | 'card' | 'cheque' | 'other' | null
+  notes: string | null
+  created_at: string
+  rental?: { id: string; vehicle_id: string | null; renter_id: string | null } | null
+}
+
+export type Expense = {
+  id: string
+  vehicle_id: string | null
+  spent_on: string
+  category: string
+  amount: number
+  vendor: string | null
+  description: string | null
+  odometer: number | null
+  created_at: string
+  vehicle?: Vehicle | null
 }
 
 export type RentalRequest = {

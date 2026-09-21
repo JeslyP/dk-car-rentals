@@ -41,3 +41,21 @@ body {
   background: #1c1917;
   min-height: 100vh;
 }
+
+/* Printing an admin page should give just the page, not the navigation. */
+@media print {
+  .admin-sidebar,
+  .admin-mobile-bar,
+  .admin-bottom-nav,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    background: #fff !important;
+  }
+  body {
+    background: #fff;
+  }
+}

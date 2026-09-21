@@ -90,7 +90,7 @@ export default function VehiclesPage() {
             </div>
             <div className="p-5">
               <h3 className="font-bold text-lg text-gray-800">{v.year} {v.make} {v.model}</h3>
-              <p className="text-gray-400 text-sm">{v.license_plate} {v.color ? `• ${v.color}` : ''}</p>
+              <p className="text-gray-400 text-sm">#{v.vehicle_id} · {v.license_plate} {v.color ? `• ${v.color}` : ''}</p>
               <div className="flex justify-between items-center mt-4">
                 <span className="text-xl font-black text-orange-500">{formatMoney(v.daily_rate)}<span className="text-gray-400 text-sm font-normal">/day</span></span>
                 <div className="flex gap-2">
@@ -98,6 +98,10 @@ export default function VehiclesPage() {
                   <button onClick={() => deleteVehicle(v.id)} className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-sm transition">🗑️</button>
                 </div>
               </div>
+              <a href={`/admin/vehicles/${v.id}/log`}
+                className="block mt-4 text-center py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                📋 Log sheet
+              </a>
             </div>
           </div>
         ))}

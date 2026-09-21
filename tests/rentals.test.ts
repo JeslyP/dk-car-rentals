@@ -90,3 +90,15 @@ describe('dates and formatting', () => {
     expect(formatDate('2026-01-01')).toBe('Jan 1, 2026')
   })
 })
+
+describe('formatMoney with negative amounts', () => {
+  it('puts the minus sign in front of the currency symbol', () => {
+    expect(formatMoney(-220)).toBe('-$220.00')
+    expect(formatMoney('-115.5')).toBe('-$115.50')
+    expect(formatMoney(-0.004)).toBe('$0.00')
+  })
+  it('still formats positives and zero unchanged', () => {
+    expect(formatMoney(0)).toBe('$0.00')
+    expect(formatMoney(70)).toBe('$70.00')
+  })
+})
