@@ -9,7 +9,7 @@ import { paymentStatusFor, round2 } from './rentals'
  */
 export async function recomputeRentalTotals(db: SupabaseClient, rentalId: string): Promise<void> {
   const [{ data: payments }, { data: rental }] = await Promise.all([
-    db.from('payments').select('amount').eq('rental_id', rentalId),
+    db.from('payments').select('amount').eq('rental_id', rentalId).is('deleted_at', null),
     db.from('rentals').select('total_charge').eq('id', rentalId).maybeSingle(),
   ])
   if (!rental) return

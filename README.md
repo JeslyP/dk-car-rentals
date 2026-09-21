@@ -75,6 +75,22 @@ and Print for a copy on paper.
 The tax percentage is set with `NEXT_PUBLIC_TAX_RATE` (default 12). Change it in
 `.env.local` or in Vercel and redeploy.
 
+### 🗑️ Deleting never destroys a record
+Removing a vehicle, customer, rental, payment or cost only hides it. The row
+keeps a `deleted_at` stamp, stays in the database, and still appears in the
+full backup file. An **Undo** appears straight after, so a mis-tap on a phone
+costs nothing.
+
+This matters because these are the figures the business files tax on, and a
+deleted rental used to take all of its payments with it. Nothing the business
+may need to produce years later can now be erased by accident.
+
+Deleted rows are excluded from every list, every total and every report, so
+the money figures are unaffected. A removed vehicle no longer holds its
+Vehicle ID or license plate, and a removed rental no longer blocks its dates,
+so those can be reused. To see what has been removed, run the query at the
+bottom of `supabase-migration-v7.sql`.
+
 ### 💵 How the money side works
 - **Every payment carries its own date.** Money counts towards the month it was
   actually received, which is what you normally report for tax. A rental that ran
@@ -136,8 +152,10 @@ Run the migration files in order in the SQL Editor, instead of the schema file:
    website's source can read and delete your customer and payment records.
 5. **`supabase-migration-v6.sql`** — creates the storage bucket that vehicle
    photos are uploaded into.
+6. **`supabase-migration-v7.sql`** — makes deleting reversible, so a mis-tap can
+   never destroy a financial record.
 
-All five files are safe to run more than once.
+All six files are safe to run more than once.
 
 ### Step 3 — Get Your Supabase Keys
 
@@ -248,6 +266,8 @@ dk-car-rentals/
 │   ├── image-client.ts           # Shrinks a photo in the browser before upload
 │   ├── supabase.ts               # Browser client (anon key) + TypeScript types
 │   └── supabase-admin.ts         # Server client (service role key)
+├── components/
+│   └── UndoBar.tsx               # Undo shown after anything is deleted
 ├── middleware.ts                 # Protects /api/admin/*
 ├── tests/                        # Vitest unit tests
 ├── supabase-schema.sql           # Fresh install
@@ -256,6 +276,7 @@ dk-car-rentals/
 ├── supabase-migration-v4.sql     # Upgrade: optional customer phone number
 ├── supabase-migration-v5.sql     # Upgrade: remove open policies, tighten grants
 ├── supabase-migration-v6.sql     # Upgrade: vehicle photo storage bucket
+├── supabase-migration-v7.sql     # Upgrade: deleting keeps the record
 └── .env.local.example            # Copy to .env.local and fill in
 ```
 

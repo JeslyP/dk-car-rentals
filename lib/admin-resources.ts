@@ -23,6 +23,20 @@ export const RESOURCE_BY_PATH: Record<string, AdminResource> = {
   payments: 'payments',
 }
 
+/**
+ * Tables where a delete only marks the row. These hold financial history the
+ * business may need years later, so the data always stays. Booking requests
+ * are not here: they carry an approved/rejected status instead and the admin
+ * never deletes them.
+ */
+const SOFT_DELETE: ReadonlySet<AdminResource> = new Set<AdminResource>([
+  'vehicles', 'renters', 'rentals', 'expenses', 'payments',
+])
+
+export function usesSoftDelete(resource: AdminResource): boolean {
+  return SOFT_DELETE.has(resource)
+}
+
 export function resolveResource(segment: string): AdminResource | null {
   return RESOURCE_BY_PATH[segment] ?? null
 }

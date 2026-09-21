@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { isAuthenticatedRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { RESOURCES, resolveResource } from '@/lib/admin-resources'
+import { RESOURCES, resolveResource, usesSoftDelete } from '@/lib/admin-resources'
 import { pickWritable, validateWrite } from '@/lib/validation'
 import { recomputeRentalTotals } from '@/lib/payments-server'
 import { isValidDateString } from '@/lib/rentals'
@@ -29,6 +29,8 @@ export async function GET(req: Request, { params }: Ctx) {
   const cfg = RESOURCES[resource]
   const url = new URL(req.url)
   let query = supabaseAdmin().from(resource).select(cfg.select).order(cfg.order.column, { ascending: cfg.order.ascending })
+  // Deleted rows stay in the database but never appear in the admin.
+  if (usesSoftDelete(resource)) query = query.is('deleted_at', null)
 
   // Optional filters used by the admin pages.
   const status = url.searchParams.get('status')

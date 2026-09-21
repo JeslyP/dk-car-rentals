@@ -13,7 +13,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function GET(req: Request) {
   if (!(await isAuthenticatedRequest(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const url = new URL(req.url)
-  let query = supabaseAdmin().from('payments').select(RESOURCES.payments.select).order('paid_on', { ascending: false })
+  let query = supabaseAdmin().from('payments').select(RESOURCES.payments.select)
+    .is('deleted_at', null)
+    .order('paid_on', { ascending: false })
 
   const rentalId = url.searchParams.get('rental_id')
   if (rentalId) {

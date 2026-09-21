@@ -7,6 +7,7 @@ import {
   CATEGORY_LABELS, EXPENSE_CATEGORIES, currentMonthKey, expensesCsv, monthEnd, monthLabel,
   monthStart, shiftMonthKey, vehicleLabel,
 } from '@/lib/finance'
+import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
 const CATEGORY_ICONS: Record<string, string> = {
   fuel: '⛽', maintenance: '🔧', repair: '🛠️', tires: '🛞', parts: '⚙️', insurance: '🛡️',
@@ -32,6 +33,7 @@ export default function ExpensesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [undo, setUndo] = useState<UndoTarget | null>(null)
 
   const range = useMemo(() => {
     if (scope === 'all') return null
@@ -122,12 +124,14 @@ export default function ExpensesPage() {
   }
 
   const remove = async (e: Expense) => {
-    if (!confirm(`Delete this ${CATEGORY_LABELS[e.category as never] || e.category} cost of ${formatMoney(e.amount)}?`)) return
+    const label = CATEGORY_LABELS[e.category as never] || e.category
+    if (!confirm(`Remove this ${label} cost of ${formatMoney(e.amount)}? It stays in your records and you can undo this.`)) return
     try {
       await api.delete(`/api/admin/expenses/${e.id}`)
+      setUndo({ message: `Removed a ${label} cost of ${formatMoney(e.amount)}.`, restorePath: `/api/admin/expenses/${e.id}/restore` })
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete this cost.')
+      setError(err instanceof Error ? err.message : 'Could not remove this cost.')
     }
   }
 
@@ -283,6 +287,7 @@ export default function ExpensesPage() {
         </div>
       </div>
 
+      <UndoBar target={undo} onDone={load} onDismiss={() => setUndo(null)} />
       {/* Add / edit modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4">
