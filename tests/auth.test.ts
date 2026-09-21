@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { checkLoginRateLimit, createSessionToken, isAuthenticatedRequest, safeEqual, SESSION_COOKIE, verifySessionToken } from '@/lib/auth'
+import { afterEach, describe, expect, it } from 'vitest'
+import { checkLoginRateLimit, createSessionToken, getAdminConfig, isAuthenticatedRequest, safeEqual, SESSION_COOKIE, verifySessionToken } from '@/lib/auth'
 
 const secret = 'test-secret'
 
@@ -60,5 +60,29 @@ describe('login rate limit', () => {
     expect(checkLoginRateLimit('1.1.1.1', now + 10, 3, 1000)).toBe(false)
     expect(checkLoginRateLimit('1.1.1.1', now + 2000, 3, 1000)).toBe(true)
     expect(checkLoginRateLimit('2.2.2.2', now + 10, 3, 1000)).toBe(true)
+  })
+})
+
+describe('admin password configuration', () => {
+  const original = process.env.ADMIN_PASSWORD
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.ADMIN_PASSWORD
+    else process.env.ADMIN_PASSWORD = original
+  })
+
+  it('ignores whitespace around the configured password', () => {
+    process.env.ADMIN_PASSWORD = '  Jesus4me\n'
+    expect(getAdminConfig().password).toBe('Jesus4me')
+  })
+
+  it('still rejects a password that is only whitespace', () => {
+    process.env.ADMIN_PASSWORD = '   '
+    expect(() => getAdminConfig()).toThrow(/ADMIN_PASSWORD is not set/)
+  })
+
+  it('keeps the password case sensitive', () => {
+    expect(safeEqual('Jesus4me', 'jesus4me')).toBe(false)
+    expect(safeEqual('Jesus4me', 'Jesus4me')).toBe(true)
   })
 })

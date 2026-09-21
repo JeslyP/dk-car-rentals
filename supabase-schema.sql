@@ -119,7 +119,7 @@ BEGIN
   WHERE id = target;
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public, pg_temp;
 
 CREATE TRIGGER payments_sync_rental
 AFTER INSERT OR UPDATE OR DELETE ON payments
@@ -165,6 +165,15 @@ CREATE POLICY "Public can view listed vehicles" ON vehicles
 -- No other policies: anon cannot read renters, rentals or requests, and
 -- cannot write anything. Booking requests are inserted server-side after
 -- validation (app/api/requests).
+
+-- Defence in depth. Supabase grants SELECT on public tables to anon and
+-- authenticated by default. Row level security already blocks the rows, but
+-- the grant exposes table and column names through the generated GraphQL
+-- schema, and a permissive policy added later by mistake would immediately
+-- expose real data. Only the fleet listing needs to be readable.
+REVOKE ALL ON TABLE renters, rentals, rental_requests, payments, expenses FROM anon, authenticated;
+REVOKE ALL ON TABLE vehicles FROM anon, authenticated;
+GRANT SELECT ON TABLE vehicles TO anon, authenticated;
 
 -- Sample vehicle data (optional - remove if not needed)
 INSERT INTO vehicles (vehicle_id, make, model, year, color, license_plate, daily_rate, is_available) VALUES

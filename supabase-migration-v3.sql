@@ -47,7 +47,7 @@ BEGIN
   WHERE id = target;
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public, pg_temp;
 
 DROP TRIGGER IF EXISTS payments_sync_rental ON payments;
 CREATE TRIGGER payments_sync_rental

@@ -20,9 +20,28 @@ cost to run, and what is left over at the end of the month.
 - **Costs** — log fuel, repairs, insurance, registration and the rest, per vehicle or business-wide
 - **Log sheet** — each vehicle has a printable page laid out like the paper sheet kept for that car (client, phone, from, to, days, charge, paid), with a quick-entry row for typing up a stack of sheets
 - **Calendar** — month timeline showing who has which vehicle on which days
-- **Vehicles** — add/edit/delete vehicles, list or unlist them from the website
+- **Vehicles** — add/edit/delete vehicles, upload a photo of each one, list or unlist them from the website
 - **Renters** — customer database with search and rental counts
 - **Requests** — approve a booking request and turn it into a rental in one click, or reject it
+
+### 📷 Vehicle photos
+Open a vehicle in the admin and press **Choose a photo**. On a phone that offers
+the camera and the photo library. The picture is shrunk in the browser before it
+is sent, so a 4 MB photo off a phone becomes a few hundred kilobytes, which
+keeps the fleet page fast and stays well inside Supabase's free storage.
+
+Photos live in a Supabase Storage bucket called `vehicle-photos`. Anyone can view
+them, which is the point, but only the admin can upload: the browser never gets
+write access, the upload goes through `/api/admin/upload` using the service role
+key. Filenames are generated rather than taken from the upload, so nothing can
+be overwritten or written outside the folder.
+
+If you would rather link to a picture hosted somewhere else, the **Or paste a
+link to a photo** option under the button still accepts a URL.
+
+iPhones shoot in HEIC, which browsers cannot display. Safari usually converts
+to JPEG when you pick a file, but if you see a message about the format, set
+Camera to **Most Compatible** in iOS Settings and take the photo again.
 
 ### 📋 Typing up the paper sheets
 Each car has a **Log sheet** page reached from the Vehicles list, laid out like the
@@ -75,7 +94,7 @@ The tax percentage is set with `NEXT_PUBLIC_TAX_RATE` (default 12). Change it in
 ### 🔒 Security model
 - The admin password lives **only on the server** (`ADMIN_PASSWORD`). Logging in sets a signed, `httpOnly` cookie that expires after 7 days.
 - All admin data goes through `/api/admin/*` route handlers, which verify that cookie and then use the Supabase **service role** key server-side.
-- The browser only uses the public anon key, and row level security lets it read nothing but listed vehicles.
+- The browser only uses the public anon key, and row level security lets it read nothing but listed vehicles. The admin tables have no grants for that key at all, so a policy added by mistake later still cannot expose them.
 - The database refuses overlapping rentals for the same vehicle and rentals whose end date is before their start date.
 
 ---
@@ -110,8 +129,15 @@ Run the migration files in order in the SQL Editor, instead of the schema file:
    them.
 3. **`supabase-migration-v4.sql`** — makes a customer's phone number optional,
    because the paper sheets usually record a name only.
+4. **`supabase-migration-v5.sql`** — removes any wide-open "Allow all" policies
+   and takes the default table grants away from the public key. Worth running
+   even on a database you believe is clean: permissive policies get added while
+   debugging and then forgotten, and with them in place anyone who views the
+   website's source can read and delete your customer and payment records.
+5. **`supabase-migration-v6.sql`** — creates the storage bucket that vehicle
+   photos are uploaded into.
 
-All three files are safe to run more than once.
+All five files are safe to run more than once.
 
 ### Step 3 — Get Your Supabase Keys
 
@@ -218,6 +244,8 @@ dk-car-rentals/
 │   ├── finance.ts                # Monthly totals, per-vehicle profit, CSV export
 │   ├── validation.ts             # Input validation and writable-column allowlists
 │   ├── email.ts                  # Resend integration (no-op when unconfigured)
+│   ├── upload.ts                 # Photo upload rules (type, size, safe paths)
+│   ├── image-client.ts           # Shrinks a photo in the browser before upload
 │   ├── supabase.ts               # Browser client (anon key) + TypeScript types
 │   └── supabase-admin.ts         # Server client (service role key)
 ├── middleware.ts                 # Protects /api/admin/*
@@ -226,6 +254,8 @@ dk-car-rentals/
 ├── supabase-migration-v2.sql     # Upgrade: constraints + RLS
 ├── supabase-migration-v3.sql     # Upgrade: payments + expenses (bookkeeping)
 ├── supabase-migration-v4.sql     # Upgrade: optional customer phone number
+├── supabase-migration-v5.sql     # Upgrade: remove open policies, tighten grants
+├── supabase-migration-v6.sql     # Upgrade: vehicle photo storage bucket
 └── .env.local.example            # Copy to .env.local and fill in
 ```
 
