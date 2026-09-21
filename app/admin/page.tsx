@@ -107,9 +107,9 @@ export default function AdminDashboard() {
           --series-2: #eb6834; /* gasoline */
           --series-3: #1baf7a; /* washes   */
           --series-4: #eda100; /* other    */
-          --ink-1: #1c1917;
-          --ink-2: #57534e;
-          --ink-3: #a8a29e;
+          --ink-1: var(--ink);
+          --ink-2: var(--ink-2);
+          --ink-3: var(--ink-3);
         }
         .dk-num { font-variant-numeric: tabular-nums; }
         @media print { .no-print { display: none !important } }
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
       <div className="grid lg:grid-cols-5 gap-6 mb-6">
         {/* Hero: the one number the page leads with */}
         <div className="lg:col-span-2 rounded-3xl p-8 text-white flex flex-col justify-center"
-          style={{ background: profitable ? '#15803d' : '#b91c1c' }}>
+          style={{ background: profitable ? 'var(--good)' : 'var(--bad)' }}>
           <p className="text-sm opacity-80">{profitable ? 'Net profit' : 'Net loss'} · {monthLabel(month)}</p>
           <p className="text-5xl md:text-6xl font-black leading-none mt-2">
             {loading ? '—' : formatMoney(Math.abs(st.netProfit))}
@@ -176,12 +176,12 @@ export default function AdminDashboard() {
             </tbody>
           </table>
 
-          <div className="mt-6 rounded-2xl px-5 py-4 flex items-center justify-between gap-4" style={{ background: '#fff7ed' }}>
+          <div className="mt-6 rounded-2xl px-5 py-4 flex items-center justify-between gap-4" style={{ background: 'var(--brand-tint)' }}>
             <div>
-              <p className="text-sm font-bold" style={{ color: '#9a3412' }}>Put aside for the government</p>
-              <p className="text-xs" style={{ color: '#c2410c' }}>{st.taxRate}% of {formatMoney(st.gross)} received this month</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--brand-tint-ink)' }}>Put aside for the government</p>
+              <p className="text-xs" style={{ color: 'var(--brand-tint-ink-2)' }}>{st.taxRate}% of {formatMoney(st.gross)} received this month</p>
             </div>
-            <p className="text-2xl font-black dk-num" style={{ color: '#9a3412' }}>{loading ? '—' : formatMoney(st.tax)}</p>
+            <p className="text-2xl font-black dk-num" style={{ color: 'var(--brand-tint-ink)' }}>{loading ? '—' : formatMoney(st.tax)}</p>
           </div>
         </div>
       </div>

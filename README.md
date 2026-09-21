@@ -75,6 +75,24 @@ and Print for a copy on paper.
 The tax percentage is set with `NEXT_PUBLIC_TAX_RATE` (default 12). Change it in
 `.env.local` or in Vercel and redeploy.
 
+### 🌙 Light and dark
+There is a moon or sun button in the public site's navigation bar, in the admin
+sidebar, and on the admin login card. It follows the device's setting until
+someone chooses for themselves, after which the choice sticks on that browser.
+A tiny inline script in `app/layout.tsx` applies the theme before the first
+paint, so there is no flash of the wrong one.
+
+The colours live as CSS custom properties at the top of `app/globals.css`:
+surfaces, ink, lines and the brand. The pages were written with Tailwind's
+light greys throughout, so rather than annotating several hundred class names,
+one block near the bottom of that file re-points those utilities at the tokens
+when the dark theme is on. To adjust either theme, change the tokens, not the
+pages.
+
+The brand orange is deliberately the same in both. Whole-card greens and reds
+are a little deeper in dark, because a saturated block that size glares.
+Printing always forces light on white, whatever the screen is set to.
+
 ### 🗑️ Deleting never destroys a record
 Removing a vehicle, customer, rental, payment or cost only hides it. The row
 keeps a `deleted_at` stamp, stays in the database, and still appears in the
@@ -267,6 +285,7 @@ dk-car-rentals/
 │   ├── supabase.ts               # Browser client (anon key) + TypeScript types
 │   └── supabase-admin.ts         # Server client (service role key)
 ├── components/
+│   ├── ThemeToggle.tsx           # Light and dark switch
 │   └── UndoBar.tsx               # Undo shown after anything is deleted
 ├── middleware.ts                 # Protects /api/admin/*
 ├── tests/                        # Vitest unit tests
