@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Expense, Payment, Rental, RentalRequest, Vehicle } from '@/lib/supabase'
-import { balanceDue, formatDate, formatMoney, isActiveRental, isUpcomingRental, todayString } from '@/lib/rentals'
+import { balanceDue, daysPastDue, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, todayString } from '@/lib/rentals'
 import {
   COST_GROUP_LABELS, CostGroup, currentMonthKey, monthEnd, monthLabel, monthStart,
   monthlyStatement, parseTaxRate, shiftMonthKey, summarise,
@@ -75,6 +75,15 @@ export default function AdminDashboard() {
   const owing = rentals
     .filter(r => balanceDue(Number(r.total_charge), Number(r.amount_paid)) > 0)
     .sort((a, b) => a.end_date.localeCompare(b.end_date))
+  /**
+   * Rentals that ended without being paid off. They are in neither the "out
+   * now" nor the "booked ahead" count, so the dashboard has to call them out
+   * itself or they go unnoticed. Longest overdue first.
+   */
+  const overdue = rentals
+    .filter(r => isOverdueRental(r, today))
+    .sort((a, b) => a.end_date.localeCompare(b.end_date))
+  const overdueTotal = overdue.reduce((s, r) => s + balanceDue(Number(r.total_charge), Number(r.amount_paid)), 0)
 
   const groups = GROUP_ORDER.map(g => ({ key: g, label: COST_GROUP_LABELS[g], amount: st.costs[g] }))
   const shownGroups = groups.filter(g => g.amount > 0)
@@ -129,6 +138,37 @@ export default function AdminDashboard() {
       </div>
 
       {error && <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div>}
+
+      {/* Rentals that are over and still owe money, in neither count below. */}
+      {overdue.length > 0 && (
+        <div className="no-print mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="font-semibold text-red-800">
+              {overdue.length === 1 ? '1 rental is' : `${overdue.length} rentals are`} past the return date and still unpaid
+            </p>
+            <p className="text-red-800 font-bold dk-num">{formatMoney(overdueTotal)} outstanding</p>
+          </div>
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {overdue.slice(0, 5).map(r => (
+              <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 text-red-900">
+                <span className="font-medium">{r.renter?.name || 'Unnamed customer'}</span>
+                <span className="text-red-700/70">
+                  {r.vehicle ? `${r.vehicle.year} ${r.vehicle.make} ${r.vehicle.model}` : 'no vehicle'}
+                  {' · due '}{formatDate(r.end_date)}{' · '}
+                  {daysPastDue(r, today)} day{daysPastDue(r, today) === 1 ? '' : 's'} late
+                </span>
+                <span className="font-semibold dk-num ml-auto">
+                  {formatMoney(balanceDue(Number(r.total_charge), Number(r.amount_paid)))}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {overdue.length > 5 && <p className="mt-2 text-xs text-red-700/70">and {overdue.length - 5} more</p>}
+          <a href="/admin/rentals" className="inline-block mt-4 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:opacity-90">
+            Chase these up
+          </a>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-5 gap-6 mb-6">
         {/* Hero: the one number the page leads with */}

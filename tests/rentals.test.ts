@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addDays, balanceDue, bookedVehicleIds, formatDate, formatMoney, isActiveRental, isUpcomingRental,
+  addDays, balanceDue, bookedVehicleIds, daysPastDue, formatDate, formatMoney, isActiveRental,
+  isOverdueRental, isPastRental, isUpcomingRental,
   isValidDateString, paymentStatusFor, rangesOverlap, rentalDays, rentalTotal,
 } from '@/lib/rentals'
 
@@ -55,6 +56,51 @@ describe('active / upcoming', () => {
   it('is upcoming only before it starts', () => {
     expect(isUpcomingRental(r, '2026-05-09')).toBe(true)
     expect(isUpcomingRental(r, '2026-05-10')).toBe(false)
+  })
+  it('leaves a finished rental out of both buckets', () => {
+    expect(isActiveRental(r, '2026-05-13')).toBe(false)
+    expect(isUpcomingRental(r, '2026-05-13')).toBe(false)
+    expect(isPastRental(r, '2026-05-13')).toBe(true)
+  })
+  it('is not past on the last day of the rental', () => {
+    expect(isPastRental(r, '2026-05-12')).toBe(false)
+    expect(isPastRental(r, '2026-05-13')).toBe(true)
+  })
+})
+
+describe('overdue', () => {
+  const dates = { start_date: '2026-05-10', end_date: '2026-05-12' }
+  const unpaid = { ...dates, total_charge: 210, amount_paid: 0 }
+  const part = { ...dates, total_charge: 210, amount_paid: 50 }
+  const settled = { ...dates, total_charge: 210, amount_paid: 210 }
+
+  it('flags a finished rental that still owes money', () => {
+    expect(isOverdueRental(unpaid, '2026-05-13')).toBe(true)
+    expect(isOverdueRental(part, '2026-05-13')).toBe(true)
+  })
+  it('does not flag one that is paid off', () => {
+    expect(isOverdueRental(settled, '2026-05-13')).toBe(false)
+  })
+  it('does not flag a rental that has not ended yet', () => {
+    expect(isOverdueRental(unpaid, '2026-05-11')).toBe(false)
+    expect(isOverdueRental(unpaid, '2026-05-12')).toBe(false)
+  })
+  it('treats an overpayment as settled', () => {
+    expect(isOverdueRental({ ...dates, total_charge: 210, amount_paid: 250 }, '2026-05-13')).toBe(false)
+  })
+  it('reads amounts that arrive from the database as strings', () => {
+    expect(isOverdueRental({ ...dates, total_charge: '210.00', amount_paid: '0.00' }, '2026-05-13')).toBe(true)
+    expect(isOverdueRental({ ...dates, total_charge: '210.00', amount_paid: '210.00' }, '2026-05-13')).toBe(false)
+  })
+
+  it('counts whole days since the return date', () => {
+    expect(daysPastDue(dates, '2026-05-12')).toBe(0)
+    expect(daysPastDue(dates, '2026-05-13')).toBe(1)
+    expect(daysPastDue(dates, '2026-05-22')).toBe(10)
+  })
+  it('counts days across a month boundary and a DST change', () => {
+    expect(daysPastDue({ start_date: '2026-02-25', end_date: '2026-02-28' }, '2026-03-02')).toBe(2)
+    expect(daysPastDue({ start_date: '2026-03-06', end_date: '2026-03-07' }, '2026-03-09')).toBe(2)
   })
 })
 

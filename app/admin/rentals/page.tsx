@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Payment, Rental, Renter, Vehicle } from '@/lib/supabase'
-import { balanceDue, formatDate, formatMoney, isActiveRental, isUpcomingRental, rentalDays, rentalTotal, todayString } from '@/lib/rentals'
+import { balanceDue, daysPastDue, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, rentalDays, rentalTotal, todayString } from '@/lib/rentals'
 import { PAYMENT_METHODS } from '@/lib/finance'
 import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
@@ -194,9 +194,12 @@ export default function RentalsPage() {
     if (filter === 'paid') return r.payment_status === 'paid'
     if (filter === 'active') return isActiveRental(r, today)
     if (filter === 'upcoming') return isUpcomingRental(r, today)
+    if (filter === 'overdue') return isOverdueRental(r, today)
     return true
   })
   const owedTotal = rentals.reduce((s, r) => s + balanceDue(Number(r.total_charge), Number(r.amount_paid)), 0)
+  const overdue = rentals.filter(r => isOverdueRental(r, today))
+  const overdueTotal = overdue.reduce((s, r) => s + balanceDue(Number(r.total_charge), Number(r.amount_paid)), 0)
 
   const num = (v: string) => (v === '' ? 0 : Number(v))
   const inputCls = 'w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400'
@@ -209,6 +212,7 @@ export default function RentalsPage() {
           <p className="text-gray-400 mt-1">
             Log rentals and record payments
             {owedTotal > 0 && <> · <b className="text-red-600">{formatMoney(owedTotal)}</b> still owed overall</>}
+            {overdue.length > 0 && <> · <b className="text-red-600">{formatMoney(overdueTotal)}</b> of it past due</>}
           </p>
         </div>
         <button onClick={openNew} className="px-5 py-3 rounded-xl text-white font-semibold transition hover:opacity-90 whitespace-nowrap" style={{ background: '#ea580c' }}>
@@ -219,11 +223,16 @@ export default function RentalsPage() {
       {error && !showForm && !paying && <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div>}
 
       <div className="flex gap-2 mb-6 flex-wrap">
-        {['all', 'active', 'upcoming', 'unpaid', 'paid'].map(f => (
+        {['all', 'active', 'upcoming', 'overdue', 'unpaid', 'paid'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition ${filter === f ? 'text-white' : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'}`}
             style={filter === f ? { background: '#ea580c' } : {}}>
             {f}
+            {f === 'overdue' && overdue.length > 0 && (
+              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${filter === f ? 'bg-white/25' : 'bg-red-100 text-red-600'}`}>
+                {overdue.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -258,6 +267,11 @@ export default function RentalsPage() {
                     <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                       {formatDate(r.start_date)} → {formatDate(r.end_date)}
                       {isActiveRental(r, today) && <span className="ml-2 text-[10px] font-bold uppercase text-orange-500">out</span>}
+                      {isOverdueRental(r, today) && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase whitespace-nowrap">
+                          overdue {daysPastDue(r, today)}d
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right text-gray-500">{rentalDays(r.start_date, r.end_date)}</td>
                     <td className="px-6 py-4 text-right font-semibold text-gray-800">{formatMoney(r.total_charge)}</td>
