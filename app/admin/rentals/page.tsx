@@ -4,6 +4,7 @@ import { api } from '@/lib/api-client'
 import type { Payment, Rental, Renter, Vehicle } from '@/lib/supabase'
 import { balanceDue, formatDate, formatMoney, isActiveRental, isUpcomingRental, rentalDays, rentalTotal, todayString } from '@/lib/rentals'
 import { PAYMENT_METHODS } from '@/lib/finance'
+import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
 const emptyForm = {
   vehicle_id: '', renter_id: '', start_date: '', end_date: '',
@@ -35,6 +36,7 @@ export default function RentalsPage() {
   const [history, setHistory] = useState<Payment[]>([])
   const [payForm, setPayForm] = useState({ amount: 0, paid_on: '', method: 'cash' })
   const [payBusy, setPayBusy] = useState(false)
+  const [undo, setUndo] = useState<UndoTarget | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -158,7 +160,7 @@ export default function RentalsPage() {
   }
 
   const deletePayment = async (p: Payment) => {
-    if (!confirm(`Remove the ${formatMoney(p.amount)} payment from ${formatDate(p.paid_on)}?`)) return
+    if (!confirm(`Remove the ${formatMoney(p.amount)} payment from ${formatDate(p.paid_on)}? It stays in your records.`)) return
     try {
       await api.delete(`/api/admin/payments/${p.id}`)
       if (paying) {
@@ -176,12 +178,13 @@ export default function RentalsPage() {
   }
 
   const remove = async (r: Rental) => {
-    if (!confirm('Delete this rental and all payments recorded against it? This cannot be undone.')) return
+    if (!confirm(`Remove the rental for ${r.renter?.name || 'this customer'}? It stays in your records and you can undo this.`)) return
     try {
       await api.delete(`/api/admin/rentals/${r.id}`)
+      setUndo({ message: `Removed the rental for ${r.renter?.name || 'this customer'}.`, restorePath: `/api/admin/rentals/${r.id}/restore` })
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete rental.')
+      setError(err instanceof Error ? err.message : 'Could not remove rental.')
     }
   }
 
@@ -279,6 +282,7 @@ export default function RentalsPage() {
         </div>
       </div>
 
+      <UndoBar target={undo} onDone={load} onDismiss={() => setUndo(null)} />
       {/* Payments panel */}
       {paying && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4">

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { isAuthenticatedRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { RESOURCES, resolveResource } from '@/lib/admin-resources'
+import { RESOURCES, resolveResource, usesSoftDelete } from '@/lib/admin-resources'
 import { pickWritable, validateWrite } from '@/lib/validation'
+import { recomputeRentalTotals } from '@/lib/payments-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,11 +45,34 @@ export async function PATCH(req: Request, { params }: Ctx) {
   return NextResponse.json(row)
 }
 
+/**
+ * Removes a record from view. For anything holding financial history the row
+ * is only marked, so a mis-tap can be undone and nothing the business may
+ * need later is destroyed.
+ */
 export async function DELETE(req: Request, { params }: Ctx) {
   if (!(await isAuthenticatedRequest(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const resource = resolveResource(params.resource)
   if (!resource || !UUID_RE.test(params.id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  const { error } = await supabaseAdmin().from(resource).delete().eq('id', params.id)
+  const db = supabaseAdmin()
+
+  if (!usesSoftDelete(resource)) {
+    const { error } = await db.from(resource).delete().eq('id', params.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return new NextResponse(null, { status: 204 })
+  }
+
+  const { data, error } = await db.from(resource)
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', params.id).is('deleted_at', null).select('id').maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return new NextResponse(null, { status: 204 })
+  if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  // A removed payment changes what its rental has been paid.
+  if (resource === 'payments') {
+    const { data: row } = await db.from('payments').select('rental_id').eq('id', params.id).maybeSingle()
+    if (row?.rental_id) await recomputeRentalTotals(db, row.rental_id)
+  }
+
+  return NextResponse.json({ id: data.id, restorable: true })
 }

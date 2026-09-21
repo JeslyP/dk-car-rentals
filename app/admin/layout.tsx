@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api-client'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 type AuthState = 'checking' | 'anonymous' | 'authed'
 
@@ -49,17 +50,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const bare = /^\/admin\/rentals\/[^/]+\/invoice/.test(pathname)
 
   if (auth === 'checking') {
-    return <div className="min-h-screen flex items-center justify-center text-gray-400" style={{ background: '#1c1917' }}>Loading…</div>
+    return <div className="min-h-screen flex items-center justify-center text-gray-400" style={{ background: 'var(--nav)' }}>Loading…</div>
   }
 
   if (auth === 'anonymous') {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#1c1917' }}>
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--nav)' }}>
         <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-6" style={{ background: '#ea580c' }}>
             DK
           </div>
-          <h2 className="font-display text-3xl font-bold mb-2" style={{ color: '#1c1917' }}>Admin Portal</h2>
+          <h2 className="font-display text-3xl font-bold mb-2" style={{ color: 'var(--ink)' }}>Admin Portal</h2>
           <p className="text-gray-400 text-sm mb-8">D&K Car Rentals Management</p>
           <form onSubmit={login} className="space-y-4">
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus autoComplete="current-password"
@@ -70,7 +71,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {busy ? 'Signing in…' : 'Login'}
             </button>
           </form>
-          <a href="/" className="text-sm text-gray-400 hover:text-gray-600 mt-6 block">← Back to website</a>
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <a href="/" className="text-sm text-gray-400 hover:text-gray-600">← Back to website</a>
+            <ThemeToggle compact className="text-lg leading-none opacity-60 hover:opacity-100 transition" />
+          </div>
         </div>
       </div>
     )
@@ -119,6 +123,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <a href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm transition">
             🌐 View Website
           </a>
+          <ThemeToggle className="text-gray-400 hover:text-white" />
           <button onClick={logout}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 text-sm w-full transition">
             🚪 Logout
@@ -127,12 +132,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Mobile top bar */}
-      <div className="admin-mobile-bar md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3" style={{ background: '#1c1917' }}>
+      <div className="admin-mobile-bar md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3" style={{ background: 'var(--nav)' }}>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: '#ea580c' }}>DK</div>
           <span className="text-white font-bold text-sm">Admin</span>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle compact className="text-gray-400 text-sm leading-none" />
           <a href="/" className="text-gray-400 text-xs">🌐 Site</a>
           <button onClick={logout} className="text-gray-400 text-xs">🚪 Out</button>
         </div>
@@ -144,7 +150,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 overflow-x-auto" style={{ background: '#1c1917' }}>
+      <nav className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 overflow-x-auto" style={{ background: 'var(--nav)' }}>
         {navItems.map(item => (
           <a key={item.href} href={item.href}
             className={`flex-1 min-w-[56px] flex flex-col items-center justify-center py-2 text-xs transition ${

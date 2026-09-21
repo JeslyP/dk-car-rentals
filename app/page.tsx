@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, Vehicle } from '@/lib/supabase'
 import { formatMoney, todayString } from '@/lib/rentals'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function Home() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -78,9 +79,9 @@ export default function Home() {
   const isVehicleBooked = (vehicleId: string) => bookedVehicleIds.has(vehicleId)
 
   return (
-    <div className="min-h-screen" style={{ background: '#fdf8f3' }}>
+    <div className="min-h-screen" style={{ background: 'var(--page)' }}>
       {/* Nav */}
-      <nav style={{ background: '#1c1917' }} className="px-4 md:px-6 py-4 sticky top-0 z-50">
+      <nav style={{ background: 'var(--nav)' }} className="px-4 md:px-6 py-4 sticky top-0 z-50">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#ea580c' }}>
@@ -93,6 +94,7 @@ export default function Home() {
             <a href="#fleet" className="text-gray-300 hover:text-white text-sm transition">Our Fleet</a>
             <a href="#about" className="text-gray-300 hover:text-white text-sm transition">About</a>
             <a href="#contact" className="text-gray-300 hover:text-white text-sm transition">Contact</a>
+            <ThemeToggle compact className="text-gray-300 hover:text-white text-lg leading-none transition" />
             <button onClick={() => setShowForm(true)}
               className="px-5 py-2 rounded-full text-white text-sm font-semibold transition hover:opacity-90"
               style={{ background: '#ea580c' }}>
@@ -100,9 +102,12 @@ export default function Home() {
             </button>
           </div>
           {/* Mobile hamburger */}
-          <button className="md:hidden text-white text-2xl" onClick={() => setMenuOpen(!menuOpen)}>
+          <div className="md:hidden flex items-center gap-4">
+          <ThemeToggle compact className="text-gray-300 text-xl leading-none" />
+          <button className="text-white text-2xl" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? '✕' : '☰'}
           </button>
+          </div>
         </div>
         {/* Mobile menu dropdown */}
         {menuOpen && (
@@ -169,7 +174,7 @@ export default function Home() {
       <section id="fleet" className="py-16 md:py-20 px-4 md:px-6 max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <p className="text-orange-600 font-semibold tracking-widest text-xs uppercase mb-2">Browse & Choose</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: '#1c1917' }}>Our Fleet</h2>
+          <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: 'var(--ink)' }}>Our Fleet</h2>
           {!formData.start_date && (
             <p className="text-gray-400 text-sm mt-2">Select dates when booking to see real-time availability</p>
           )}
@@ -187,9 +192,14 @@ export default function Home() {
               const unavailable = bookedForDates
               return (
                 <div key={v.id} className={`card-hover bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 transition-all ${unavailable ? 'opacity-60' : ''}`}>
-                  <div className="relative h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <div className="relative aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
                     {v.photo_url ? (
-                      <img src={v.photo_url} alt={`${v.make} ${v.model}`} className="w-full h-full object-cover" />
+                      <>
+                        <img src={v.photo_url} alt="" aria-hidden="true"
+                          className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-50" />
+                        <img src={v.photo_url} alt={`${v.year} ${v.make} ${v.model}`}
+                          className="relative w-full h-full object-contain" />
+                      </>
                     ) : (
                       <div className="text-6xl">🚗</div>
                     )}
@@ -198,7 +208,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="p-4 md:p-5">
-                    <h3 className="font-bold text-lg font-display" style={{ color: '#1c1917' }}>
+                    <h3 className="font-bold text-lg font-display" style={{ color: 'var(--ink)' }}>
                       {v.year} {v.make} {v.model}
                     </h3>
                     {v.color && <p className="text-gray-500 text-sm mt-1">{v.color}</p>}
@@ -229,7 +239,7 @@ export default function Home() {
       </section>
 
       {/* About */}
-      <section id="about" className="py-16 md:py-20 px-4 md:px-6" style={{ background: '#1c1917' }}>
+      <section id="about" className="py-16 md:py-20 px-4 md:px-6" style={{ background: 'var(--nav)' }}>
         <div className="max-w-4xl mx-auto text-center text-white">
           <p className="text-orange-400 font-semibold tracking-widest text-xs uppercase mb-4">Who We Are</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-6">A Family Business<br />Built on Trust</h2>
@@ -243,7 +253,7 @@ export default function Home() {
       {/* Contact */}
       <section id="contact" className="py-16 md:py-20 px-4 md:px-6 max-w-2xl mx-auto text-center">
         <p className="text-orange-600 font-semibold tracking-widest text-xs uppercase mb-2">Get In Touch</p>
-        <h2 className="font-display text-3xl md:text-4xl font-bold mb-4" style={{ color: '#1c1917' }}>Contact Us</h2>
+        <h2 className="font-display text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--ink)' }}>Contact Us</h2>
         <p className="text-gray-500 mb-8">Have questions? Submit a booking request and we'll get back to you.</p>
         <button onClick={() => setShowForm(true)}
           className="px-8 py-4 rounded-full font-bold text-white transition hover:opacity-90 w-full sm:w-auto"
@@ -253,7 +263,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer style={{ background: '#1c1917' }} className="py-8 px-4 text-center text-gray-500 text-sm">
+      <footer style={{ background: 'var(--nav)' }} className="py-8 px-4 text-center text-gray-500 text-sm">
         <p>© {new Date().getFullYear()} D&K Car Rentals. All rights reserved.</p>
         {/* Discreet way in for the owner. The admin itself is password protected. */}
         <a href="/admin"
@@ -267,7 +277,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-6 md:p-8 w-full sm:max-w-lg shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-display text-xl md:text-2xl font-bold" style={{ color: '#1c1917' }}>Request a Rental</h3>
+              <h3 className="font-display text-xl md:text-2xl font-bold" style={{ color: 'var(--ink)' }}>Request a Rental</h3>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">×</button>
             </div>
             <form onSubmit={handleRequest} className="space-y-4">

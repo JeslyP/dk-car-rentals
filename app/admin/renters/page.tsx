@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Renter } from '@/lib/supabase'
+import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
 const emptyForm = { name: '', phone: '', email: '', id_number: '' }
 
@@ -13,6 +14,7 @@ export default function RentersPage() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [undo, setUndo] = useState<UndoTarget | null>(null)
 
   const load = async () => {
     try { setRenters(await api.get<Renter[]>('/api/admin/renters')) }
@@ -39,11 +41,12 @@ export default function RentersPage() {
   }
 
   const remove = async (r: Renter) => {
-    if (!confirm(`Delete ${r.name}? Their rentals will keep their records but lose the renter link.`)) return
+    if (!confirm(`Remove ${r.name}? Their rental history is kept and you can undo this.`)) return
     try {
       await api.delete(`/api/admin/renters/${r.id}`)
+      setUndo({ message: `Removed ${r.name}.`, restorePath: `/api/admin/renters/${r.id}/restore` })
       await load()
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not delete renter.') }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not remove renter.') }
   }
 
   const q = search.trim().toLowerCase()
@@ -112,6 +115,7 @@ export default function RentersPage() {
         </div>
       </div>
 
+      <UndoBar target={undo} onDone={load} onDismiss={() => setUndo(null)} />
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl">

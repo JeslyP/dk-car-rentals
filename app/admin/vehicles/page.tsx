@@ -5,6 +5,7 @@ import type { Vehicle } from '@/lib/supabase'
 import { formatMoney } from '@/lib/rentals'
 import { shrinkImage } from '@/lib/image-client'
 import { humanSize, validateImageUpload } from '@/lib/upload'
+import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
 const emptyForm = { vehicle_id: '', make: '', model: '', year: new Date().getFullYear(), color: '', license_plate: '', daily_rate: 0, is_available: true, photo_url: '', notes: '' }
 type Form = typeof emptyForm
@@ -18,6 +19,7 @@ export default function VehiclesPage() {
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadNote, setUploadNote] = useState('')
+  const [undo, setUndo] = useState<UndoTarget | null>(null)
 
   const load = async () => {
     try { setVehicles(await api.get<Vehicle[]>('/api/admin/vehicles')) }
@@ -50,12 +52,13 @@ export default function VehiclesPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not update vehicle.') }
   }
 
-  const deleteVehicle = async (id: string) => {
-    if (!confirm('Delete this vehicle? Past rentals will keep their records but lose the vehicle link. This cannot be undone.')) return
+  const deleteVehicle = async (v: Vehicle) => {
+    if (!confirm(`Remove the ${v.year} ${v.make} ${v.model}? Its rental history is kept and you can undo this.`)) return
     try {
-      await api.delete(`/api/admin/vehicles/${id}`)
+      await api.delete(`/api/admin/vehicles/${v.id}`)
+      setUndo({ message: `Removed the ${v.year} ${v.make} ${v.model}.`, restorePath: `/api/admin/vehicles/${v.id}/restore` })
       await load()
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not delete vehicle.') }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not remove vehicle.') }
   }
 
   const startEdit = (v: Vehicle) => {
@@ -123,8 +126,15 @@ export default function VehiclesPage() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {vehicles.map(v => (
           <div key={v.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-            <div className="h-40 bg-gray-100 flex items-center justify-center overflow-hidden relative">
-              {v.photo_url ? <img src={v.photo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-5xl">🚗</span>}
+            <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden relative">
+              {v.photo_url ? (
+                <>
+                  <img src={v.photo_url} alt="" aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-50" />
+                  <img src={v.photo_url} alt={`${v.year} ${v.make} ${v.model}`}
+                    className="relative w-full h-full object-contain" />
+                </>
+              ) : <span className="text-5xl">🚗</span>}
               <button onClick={() => toggleAvailability(v)} title="Toggle whether this vehicle is listed for rent"
                 className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white cursor-pointer ${v.is_available ? 'bg-green-500' : 'bg-red-500'}`}>
                 {v.is_available ? '✓ Listed' : '✗ Not listed'}
@@ -137,7 +147,7 @@ export default function VehiclesPage() {
                 <span className="text-xl font-black text-orange-500">{formatMoney(v.daily_rate)}<span className="text-gray-400 text-sm font-normal">/day</span></span>
                 <div className="flex gap-2">
                   <button onClick={() => startEdit(v)} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm transition">✏️ Edit</button>
-                  <button onClick={() => deleteVehicle(v.id)} className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-sm transition">🗑️</button>
+                  <button onClick={() => deleteVehicle(v)} className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-sm transition">🗑️</button>
                 </div>
               </div>
               <a href={`/admin/vehicles/${v.id}/log`}
@@ -155,6 +165,7 @@ export default function VehiclesPage() {
         )}
       </div>
 
+      <UndoBar target={undo} onDone={load} onDismiss={() => setUndo(null)} />
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -209,7 +220,7 @@ export default function VehiclesPage() {
                 <div className="flex items-start gap-4">
                   <div className="w-28 h-20 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {form.photo_url
-                      ? <img src={form.photo_url} alt="" className="w-full h-full object-cover" />
+                      ? <img src={form.photo_url} alt="" className="w-full h-full object-contain" />
                       : <span className="text-3xl">🚗</span>}
                   </div>
                   <div className="flex-1 min-w-0">

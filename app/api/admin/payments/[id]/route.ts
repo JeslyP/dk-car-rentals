@@ -16,7 +16,9 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   const { data: existing } = await db.from('payments').select('rental_id').eq('id', params.id).maybeSingle()
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const { error } = await db.from('payments').delete().eq('id', params.id)
+  // Marked rather than destroyed: a payment is part of the financial record.
+  const { error } = await db.from('payments')
+    .update({ deleted_at: new Date().toISOString() }).eq('id', params.id).is('deleted_at', null)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   if (existing.rental_id) await recomputeRentalTotals(db, existing.rental_id)
