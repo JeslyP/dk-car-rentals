@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Vehicle } from '@/lib/supabase'
 import { formatMoney } from '@/lib/rentals'
+import { shrinkImage } from '@/lib/image-client'
+import { humanSize, validateImageUpload } from '@/lib/upload'
 
 const emptyForm = { vehicle_id: '', make: '', model: '', year: new Date().getFullYear(), color: '', license_plate: '', daily_rate: 0, is_available: true, photo_url: '', notes: '' }
 type Form = typeof emptyForm
@@ -14,6 +16,8 @@ export default function VehiclesPage() {
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadNote, setUploadNote] = useState('')
 
   const load = async () => {
     try { setVehicles(await api.get<Vehicle[]>('/api/admin/vehicles')) }
@@ -58,10 +62,48 @@ export default function VehiclesPage() {
     setForm({ vehicle_id: v.vehicle_id, make: v.make, model: v.model, year: v.year, color: v.color || '', license_plate: v.license_plate, daily_rate: Number(v.daily_rate), is_available: v.is_available, photo_url: v.photo_url || '', notes: v.notes || '' })
     setEditing(v.id)
     setError('')
+    setUploadNote('')
     setShowForm(true)
   }
 
   const num = (v: string) => (v === '' ? 0 : Number(v))
+
+  /** Shrink the picture in the browser, then send it to the upload route. */
+  const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const chosen = e.target.files?.[0]
+    e.target.value = '' // let the same file be chosen again after a failure
+    if (!chosen) return
+
+    setUploading(true)
+    setError('')
+    setUploadNote('')
+    try {
+      const ready = await shrinkImage(chosen)
+      const check = validateImageUpload({ type: ready.type, size: ready.size })
+      if (!check.ok) {
+        setError(check.error)
+        return
+      }
+
+      const body = new FormData()
+      body.append('file', ready)
+      const res = await fetch('/api/admin/upload', { method: 'POST', body, credentials: 'same-origin' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error || 'Could not upload that photo.')
+        return
+      }
+
+      setForm(f => ({ ...f, photo_url: data.url }))
+      setUploadNote(ready.size < chosen.size
+        ? `Uploaded, shrunk from ${humanSize(chosen.size)} to ${humanSize(ready.size)}.`
+        : 'Uploaded.')
+    } catch {
+      setError('Could not upload that photo. Check your connection and try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <div className="p-4 md:p-8">
@@ -70,7 +112,7 @@ export default function VehiclesPage() {
           <h1 className="font-display text-3xl font-bold text-gray-800">Vehicles</h1>
           <p className="text-gray-400 mt-1">Manage your fleet</p>
         </div>
-        <button onClick={() => { setForm(emptyForm); setEditing(null); setError(''); setShowForm(true) }}
+        <button onClick={() => { setForm(emptyForm); setEditing(null); setError(''); setUploadNote(''); setShowForm(true) }}
           className="px-5 py-3 rounded-xl text-white font-semibold transition hover:opacity-90 whitespace-nowrap" style={{ background: '#ea580c' }}>
           + Add Vehicle
         </button>
@@ -163,9 +205,34 @@ export default function VehiclesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Photo URL</label>
-                <input type="url" value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" placeholder="https://..." />
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Photo</label>
+                <div className="flex items-start gap-4">
+                  <div className="w-28 h-20 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {form.photo_url
+                      ? <img src={form.photo_url} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-3xl">🚗</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label className={`inline-block px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition ${uploading ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                      {uploading ? 'Uploading…' : form.photo_url ? 'Replace photo' : '📷 Choose a photo'}
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
+                        disabled={uploading} onChange={pickPhoto} />
+                    </label>
+                    {form.photo_url && !uploading && (
+                      <button type="button" onClick={() => { setForm({ ...form, photo_url: '' }); setUploadNote('') }}
+                        className="ml-2 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 transition">Remove</button>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">
+                      Take one on your phone or pick from your photos. It is shrunk automatically before uploading.
+                    </p>
+                    {uploadNote && <p className="text-xs text-green-600 mt-1">{uploadNote}</p>}
+                  </div>
+                </div>
+                <details className="mt-3">
+                  <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">Or paste a link to a photo</summary>
+                  <input type="url" value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})}
+                    className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 text-sm" placeholder="https://..." />
+                </details>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
@@ -177,10 +244,10 @@ export default function VehiclesPage() {
                 <label htmlFor="avail" className="text-sm font-semibold text-gray-700">Listed for rent on the website</label>
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
-              <button type="submit" disabled={saving}
+              <button type="submit" disabled={saving || uploading}
                 className="w-full py-4 rounded-xl text-white font-bold text-lg transition hover:opacity-90 disabled:opacity-50"
                 style={{ background: '#ea580c' }}>
-                {saving ? 'Saving...' : editing ? 'Update Vehicle' : 'Add Vehicle'}
+                {saving ? 'Saving...' : uploading ? 'Waiting for the photo…' : editing ? 'Update Vehicle' : 'Add Vehicle'}
               </button>
             </form>
           </div>
