@@ -54,6 +54,9 @@ export function rangesOverlap(aStart: DateString, aEnd: DateString, bStart: Date
 
 export type RentalLike = { start_date: DateString; end_date: DateString; vehicle_id?: string | null }
 
+/** The two amounts needed to tell whether a rental has been paid off. */
+export type RentalMoney = { total_charge: number | string; amount_paid: number | string }
+
 /** Vehicle ids that have a rental overlapping the given range. */
 export function bookedVehicleIds(rentals: RentalLike[], start: DateString, end: DateString): Set<string> {
   const ids = new Set<string>()
@@ -70,6 +73,29 @@ export function isActiveRental(r: RentalLike, today = todayString()): boolean {
 
 export function isUpcomingRental(r: RentalLike, today = todayString()): boolean {
   return r.start_date > today
+}
+
+/** True when the return date has already gone by. */
+export function isPastRental(r: RentalLike, today = todayString()): boolean {
+  return r.end_date < today
+}
+
+/** Whole days since the return date. Zero for a rental that is not past yet. */
+export function daysPastDue(r: RentalLike, today = todayString()): number {
+  if (!isPastRental(r, today)) return 0
+  return Math.round((parseDate(today).getTime() - parseDate(r.end_date).getTime()) / 86400000)
+}
+
+/**
+ * A rental that is over but has not been paid off.
+ *
+ * Nothing records that a car physically came back, so "overdue" here means the
+ * money is overdue: the dates have passed and there is still a balance. These
+ * are the rentals that fall through the cracks, because a finished rental is
+ * neither active nor upcoming and so appears in neither list.
+ */
+export function isOverdueRental(r: RentalLike & RentalMoney, today = todayString()): boolean {
+  return isPastRental(r, today) && balanceDue(Number(r.total_charge), Number(r.amount_paid)) > 0
 }
 
 export type PaymentStatus = 'paid' | 'unpaid' | 'partial'
