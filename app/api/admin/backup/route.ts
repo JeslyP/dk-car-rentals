@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': `attachment; filename="dk-backup-${exportedAt.slice(0, 10)}.json"`,
+      'Content-Disposition': `attachment; filename="dj-backup-${exportedAt.slice(0, 10)}.json"`,
       'Cache-Control': 'no-store',
     },
   })

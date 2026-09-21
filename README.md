@@ -1,6 +1,6 @@
-# 🚗 D&K Car Rentals
+# 🚗 D&J Car Rentals
 
-A full-stack web app for managing D&K Car Rentals — built with **Next.js 14**, **Supabase**, and **Tailwind CSS**.
+A full-stack web app for managing D&J Car Rentals — built with **Next.js 14**, **Supabase**, and **Tailwind CSS**.
 
 ## What's Included
 

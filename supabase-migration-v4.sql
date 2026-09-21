@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Migration v4
+-- D&J Car Rentals - Migration v4
 -- Matches the app to how the paper log sheets are actually filled in.
 -- Run this ONCE in the Supabase SQL Editor. Safe to re-run.
 -- ============================================

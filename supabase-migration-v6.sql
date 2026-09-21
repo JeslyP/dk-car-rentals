@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Migration v6: vehicle photo storage
+-- D&J Car Rentals - Migration v6: vehicle photo storage
 -- Creates the bucket the admin uploads vehicle photos into.
 -- Run this ONCE in the Supabase SQL Editor. Safe to re-run.
 -- ============================================

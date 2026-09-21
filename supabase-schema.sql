@@ -1,5 +1,5 @@
 -- ============================================
--- D&K Car Rentals - Supabase Database Schema (v3)
+-- D&J Car Rentals - Supabase Database Schema (v3)
 -- Run this in your Supabase SQL Editor on a NEW project.
 -- Already have older tables? Run the supabase-migration-*.sql files in order
 -- (v2 then v3) instead of this file.

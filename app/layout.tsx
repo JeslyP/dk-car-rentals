@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'D&K Car Rentals',
+  title: 'D&J Car Rentals',
   description: 'Reliable car rentals for every journey. Browse our fleet and book online.',
 }
 
