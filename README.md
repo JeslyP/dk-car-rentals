@@ -148,6 +148,11 @@ bottom of `supabase-migration-v7.sql`.
 
 ---
 
+## 🗺️ Changing the code
+`CODE-MAP.md` explains what every file does, which ones are safe to edit, which
+protect the money or the data, and the handful of changes that need editing in
+two places at once.
+
 ## 🚀 Setup Guide (Step by Step)
 
 ### Step 1 — Create a Supabase Project
