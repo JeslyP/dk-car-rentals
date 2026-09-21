@@ -79,6 +79,9 @@ export default function ReportsPage() {
         <div className="no-print flex gap-2">
           <button onClick={() => window.print()} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50">🖨️ Print</button>
           <button onClick={downloadCsv} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50">⬇ Export CSV</button>
+          <a href="/api/admin/backup" download
+            title="A complete copy of every record, to keep somewhere safe like Google Drive"
+            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50">🗄️ Full backup</a>
         </div>
       </div>
 
