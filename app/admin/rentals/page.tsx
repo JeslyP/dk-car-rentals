@@ -65,7 +65,7 @@ export default function RentalsPage() {
   }
 
   const createRenter = async () => {
-    if (!newRenter.name || !newRenter.phone) return
+    if (!newRenter.name) return
     try {
       const data = await api.post<Renter>('/api/admin/renters', newRenter)
       setRenters(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
@@ -391,14 +391,14 @@ export default function RentalsPage() {
                 {addingRenter ? (
                   <div className="space-y-2 p-4 bg-orange-50 rounded-xl">
                     <input value={newRenter.name} onChange={e => setNewRenter({...newRenter, name: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Full name *" />
-                    <input value={newRenter.phone} onChange={e => setNewRenter({...newRenter, phone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Phone *" />
+                    <input value={newRenter.phone} onChange={e => setNewRenter({...newRenter, phone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Phone (optional)" />
                     <input value={newRenter.email} onChange={e => setNewRenter({...newRenter, email: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Email (optional)" />
                     <button type="button" onClick={createRenter} className="px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ background: '#ea580c' }}>Add &amp; Select</button>
                   </div>
                 ) : (
                   <select required value={form.renter_id} onChange={e => setForm({...form, renter_id: e.target.value})} className={inputCls}>
                     <option value="">Select renter</option>
-                    {renters.map(r => <option key={r.id} value={r.id}>{r.name} — {r.phone}</option>)}
+                    {renters.map(r => <option key={r.id} value={r.id}>{r.name}{r.phone ? ` — ${r.phone}` : ''}</option>)}
                   </select>
                 )}
               </div>

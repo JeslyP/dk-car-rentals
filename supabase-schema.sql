@@ -30,12 +30,14 @@ CREATE TABLE vehicles (
 CREATE TABLE renters (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
-  phone TEXT NOT NULL,
+  -- Optional: the paper log sheets usually record a name only.
+  phone TEXT,
   email TEXT,
   id_number TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX renters_phone_idx ON renters (phone);
+CREATE INDEX renters_name_lower_idx ON renters (lower(name));
 
 -- Rentals table
 CREATE TABLE rentals (

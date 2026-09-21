@@ -1,6 +1,11 @@
 import { isValidDateString } from './rentals'
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from './finance'
 
+/** Trimmed, single-spaced name used for matching an existing customer. */
+export function normaliseName(value: unknown): string {
+  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : ''
+}
+
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string }
 
 export type BookingRequestInput = {
@@ -128,7 +133,8 @@ export function validateWrite(resource: AdminResource, data: Record<string, unkn
       return null
     }
     case 'renters':
-      return required(['name', 'phone'])
+      // Phone is optional: the paper sheets usually record a name only.
+      return required(['name'])
     case 'rentals': {
       const err = required(['vehicle_id', 'renter_id', 'start_date', 'end_date', 'daily_rate', 'total_charge'])
       if (err) return err

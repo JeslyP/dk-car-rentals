@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pickWritable, validateBookingRequest, validateDateRange, validateWrite } from '@/lib/validation'
+import { normaliseName, pickWritable, validateBookingRequest, validateDateRange, validateWrite } from '@/lib/validation'
 
 const good = { name: 'Jane Doe', phone: '555-123-4567', email: 'jane@example.com', start_date: '2026-06-01', end_date: '2026-06-03', message: 'hi' }
 
@@ -90,5 +90,26 @@ describe('validateWrite', () => {
   it('rejects invalid request status', () => {
     expect(validateWrite('rental_requests', { status: 'done' }, true)).toMatch(/not valid/)
     expect(validateWrite('rental_requests', { status: 'rejected' }, true)).toBeNull()
+  })
+})
+
+describe('normaliseName', () => {
+  it('trims and collapses whitespace so the same person matches', () => {
+    expect(normaliseName('  Stanley   Mathews ')).toBe('Stanley Mathews')
+    expect(normaliseName('Davensly Icher')).toBe('Davensly Icher')
+  })
+  it('returns an empty string for anything that is not text', () => {
+    expect(normaliseName(null)).toBe('')
+    expect(normaliseName(42)).toBe('')
+    expect(normaliseName(undefined)).toBe('')
+  })
+})
+
+describe('renters without a phone number', () => {
+  it('accepts a name on its own, as the paper sheets record it', () => {
+    expect(validateWrite('renters', { name: 'Glenda Clarke' }, false)).toBeNull()
+  })
+  it('still requires a name', () => {
+    expect(validateWrite('renters', { phone: '5551234' }, false)).toMatch(/Name is required/)
   })
 })

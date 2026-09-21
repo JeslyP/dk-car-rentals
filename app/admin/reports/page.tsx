@@ -173,7 +173,11 @@ export default function ReportsPage() {
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400">No vehicles yet.</td></tr>
               ) : summary.byVehicle.map(v => (
                 <tr key={v.vehicleId ?? 'none'} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-800">{v.label}</td>
+                  <td className="px-6 py-4 font-medium text-gray-800">
+                    {v.vehicleId
+                      ? <a href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</a>
+                      : v.label}
+                  </td>
                   <td className="px-6 py-4 text-right text-gray-500">{v.rentals}</td>
                   <td className="px-6 py-4 text-right text-green-700">{formatMoney(v.collected)}</td>
                   <td className="px-6 py-4 text-right text-red-600">{formatMoney(v.expenses)}</td>

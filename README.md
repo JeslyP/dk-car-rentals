@@ -18,10 +18,24 @@ cost to run, and what is left over at the end of the month.
 - **Money** — the monthly (or yearly) profit and loss statement: per-vehicle profit, cost breakdown, month-by-month history, print and CSV export
 - **Rentals** — log rentals and record each payment with the date it arrived
 - **Costs** — log fuel, repairs, insurance, registration and the rest, per vehicle or business-wide
+- **Log sheet** — each vehicle has a printable page laid out like the paper sheet kept for that car (client, phone, from, to, days, charge, paid), with a quick-entry row for typing up a stack of sheets
 - **Calendar** — month timeline showing who has which vehicle on which days
 - **Vehicles** — add/edit/delete vehicles, list or unlist them from the website
 - **Renters** — customer database with search and rental counts
 - **Requests** — approve a booking request and turn it into a rental in one click, or reject it
+
+### 📋 Typing up the paper sheets
+Each car has a **Log sheet** page reached from the Vehicles list, laid out like the
+paper sheet kept in the file: client name, phone, from, to, number of days, charge
+and whether it was paid, in date order, with the totals at the bottom. It prints
+onto one page.
+
+At the bottom is a quick-entry row for working through a stack of sheets. Type the
+name, the two dates and the charge, tick Paid, and press Add row. A customer name
+that already exists is reused, a new one is created, and the From date carries over
+to the next row so a sequence of rentals is fast to enter. Ticking Paid records the
+full charge as received on the To date, which you can correct later if the money
+actually arrived on a different day.
 
 ### 💵 How the money side works
 - **Every payment carries its own date.** Money counts towards the month it was
@@ -75,8 +89,10 @@ Run the migration files in order in the SQL Editor, instead of the schema file:
    payment dated on the rental's start date, so no money is lost. If some of those
    dates are wrong for your records, open the rental's Payment panel and re-enter
    them.
+3. **`supabase-migration-v4.sql`** — makes a customer's phone number optional,
+   because the paper sheets usually record a name only.
 
-Both files are safe to run more than once.
+All three files are safe to run more than once.
 
 ### Step 3 — Get Your Supabase Keys
 
@@ -163,6 +179,7 @@ dk-car-rentals/
 │   │   ├── layout.tsx            # Admin login + sidebar
 │   │   ├── page.tsx              # Dashboard (this month's money)
 │   │   ├── expenses/             # Running costs per vehicle
+│   │   ├── vehicles/[id]/log/    # Printable per-car log sheet + quick entry
 │   │   ├── reports/              # Monthly profit and loss, print + CSV
 │   │   ├── calendar/             # Month timeline of rentals per vehicle
 │   │   ├── vehicles/             # Vehicle management
@@ -188,6 +205,7 @@ dk-car-rentals/
 ├── supabase-schema.sql           # Fresh install
 ├── supabase-migration-v2.sql     # Upgrade: constraints + RLS
 ├── supabase-migration-v3.sql     # Upgrade: payments + expenses (bookkeeping)
+├── supabase-migration-v4.sql     # Upgrade: optional customer phone number
 └── .env.local.example            # Copy to .env.local and fill in
 ```
 

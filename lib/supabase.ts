@@ -28,7 +28,7 @@ export type Vehicle = {
 export type Renter = {
   id: string
   name: string
-  phone: string
+  phone: string | null
   email: string | null
   id_number: string | null
   created_at: string

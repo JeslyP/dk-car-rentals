@@ -127,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3" style={{ background: '#1c1917' }}>
+      <div className="admin-mobile-bar md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3" style={{ background: '#1c1917' }}>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: '#ea580c' }}>DK</div>
           <span className="text-white font-bold text-sm">Admin</span>
@@ -144,7 +144,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 overflow-x-auto" style={{ background: '#1c1917' }}>
+      <nav className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 overflow-x-auto" style={{ background: '#1c1917' }}>
         {navItems.map(item => (
           <a key={item.href} href={item.href}
             className={`flex-1 min-w-[56px] flex flex-col items-center justify-center py-2 text-xs transition ${
