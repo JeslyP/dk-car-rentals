@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ALLOWED_IMAGE_TYPES, buildPhotoPath, extensionForType, humanSize,
-  isAllowedImageType, MAX_UPLOAD_BYTES, validateImageUpload,
+  isAllowedImageType, MAX_UPLOAD_BYTES, needsConversion, validateImageUpload,
 } from '@/lib/upload'
 
 describe('allowed types', () => {
@@ -68,5 +68,20 @@ describe('humanSize', () => {
     expect(humanSize(512)).toBe('512 bytes')
     expect(humanSize(2048)).toBe('2 KB')
     expect(humanSize(3.5 * 1024 * 1024)).toBe('3.5 MB')
+  })
+})
+
+describe('needsConversion', () => {
+  it('leaves formats a browser can display alone', () => {
+    for (const t of ALLOWED_IMAGE_TYPES) expect(needsConversion(t)).toBe(false)
+  })
+  it('flags an iPhone HEIC, which no browser will display', () => {
+    expect(needsConversion('image/heic')).toBe(true)
+    expect(needsConversion('image/heif')).toBe(true)
+  })
+  it('flags a missing or junk type rather than trusting it', () => {
+    expect(needsConversion(undefined)).toBe(true)
+    expect(needsConversion('')).toBe(true)
+    expect(needsConversion('application/pdf')).toBe(true)
   })
 })

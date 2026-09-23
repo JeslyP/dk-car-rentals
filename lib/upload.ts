@@ -28,6 +28,14 @@ export function isAllowedImageType(mime: unknown): mime is AllowedImageType {
   return typeof mime === 'string' && (ALLOWED_IMAGE_TYPES as readonly string[]).includes(mime)
 }
 
+/**
+ * True when the browser cannot display this file as it stands, so it has to be
+ * re-encoded before upload. An iPhone shooting HEIC lands here.
+ */
+export function needsConversion(mime: unknown): boolean {
+  return !isAllowedImageType(mime)
+}
+
 export function humanSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
