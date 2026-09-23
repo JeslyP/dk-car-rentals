@@ -226,7 +226,7 @@ export default function VehiclesPage() {
                   <div className="flex-1 min-w-0">
                     <label className={`inline-block px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition ${uploading ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
                       {uploading ? 'Uploading…' : form.photo_url ? 'Replace photo' : '📷 Choose a photo'}
-                      <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
+                      <input type="file" accept="image/*" className="hidden"
                         disabled={uploading} onChange={pickPhoto} />
                     </label>
                     {form.photo_url && !uploading && (
