@@ -31,10 +31,24 @@ describe('rentalTotal', () => {
 })
 
 describe('rangesOverlap / bookedVehicleIds', () => {
-  it('detects inclusive overlaps', () => {
-    expect(rangesOverlap('2026-01-01', '2026-01-05', '2026-01-05', '2026-01-09')).toBe(true)
-    expect(rangesOverlap('2026-01-01', '2026-01-05', '2026-01-06', '2026-01-09')).toBe(false)
+  it('lets a car go back out on the day it is returned', () => {
+    // Returned on the 21st, washed, rented again on the 21st.
+    expect(rangesOverlap('2026-09-20', '2026-09-21', '2026-09-21', '2026-09-23')).toBe(false)
+    expect(rangesOverlap('2026-09-21', '2026-09-23', '2026-09-20', '2026-09-21')).toBe(false)
+  })
+  it('still catches two rentals that share a night', () => {
+    expect(rangesOverlap('2026-09-20', '2026-09-22', '2026-09-21', '2026-09-23')).toBe(true)
     expect(rangesOverlap('2026-01-03', '2026-01-04', '2026-01-01', '2026-01-09')).toBe(true)
+    expect(rangesOverlap('2026-01-01', '2026-01-09', '2026-01-01', '2026-01-09')).toBe(true)
+  })
+  it('treats a same-day rental as holding its one day', () => {
+    expect(rangesOverlap('2026-09-21', '2026-09-21', '2026-09-21', '2026-09-23')).toBe(true)
+    expect(rangesOverlap('2026-09-21', '2026-09-21', '2026-09-21', '2026-09-21')).toBe(true)
+    // ...but it can follow a rental returned that morning.
+    expect(rangesOverlap('2026-09-20', '2026-09-21', '2026-09-21', '2026-09-21')).toBe(false)
+  })
+  it('leaves separate weeks alone', () => {
+    expect(rangesOverlap('2026-01-01', '2026-01-05', '2026-01-06', '2026-01-09')).toBe(false)
   })
   it('collects only overlapping vehicles and ignores unassigned rentals', () => {
     const rentals = [
@@ -42,7 +56,15 @@ describe('rangesOverlap / bookedVehicleIds', () => {
       { vehicle_id: 'b', start_date: '2026-01-10', end_date: '2026-01-12' },
       { vehicle_id: null, start_date: '2026-01-01', end_date: '2026-01-31' },
     ]
-    expect(Array.from(bookedVehicleIds(rentals, '2026-01-03', '2026-01-05'))).toEqual(['a'])
+    // 'a' is out 1st-3rd, so a booking from the 2nd clashes...
+    expect(Array.from(bookedVehicleIds(rentals, '2026-01-02', '2026-01-05'))).toEqual(['a'])
+    // ...but one from the 3rd, its return day, does not.
+    expect(Array.from(bookedVehicleIds(rentals, '2026-01-03', '2026-01-05'))).toEqual([])
+  })
+  it('offers a car for a booking that starts on its return day', () => {
+    const rentals = [{ vehicle_id: 'vitz', start_date: '2026-09-20', end_date: '2026-09-21' }]
+    expect(bookedVehicleIds(rentals, '2026-09-21', '2026-09-23').size).toBe(0)
+    expect(bookedVehicleIds(rentals, '2026-09-20', '2026-09-23').has('vitz')).toBe(true)
   })
 })
 

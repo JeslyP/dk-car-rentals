@@ -47,9 +47,26 @@ export function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-/** True when the two inclusive date ranges share at least one day. */
+/**
+ * The first day a rental no longer needs the car.
+ *
+ * The return date is handover day: the car comes back, gets washed, and can
+ * go straight out to the next customer, so the rental does not hold it that
+ * day. That matches billing, where the 20th to the 21st is one day. A rental
+ * that starts and ends on the same day still holds its one day.
+ */
+export function occupiedUntil(start: DateString, end: DateString): DateString {
+  return end > start ? end : addDays(start, 1)
+}
+
+/**
+ * True when two rentals need the same car on the same day. Handing a car back
+ * on the day the next rental starts is not a clash.
+ *
+ * The database enforces the same rule; see supabase-migration-v9.sql.
+ */
 export function rangesOverlap(aStart: DateString, aEnd: DateString, bStart: DateString, bEnd: DateString): boolean {
-  return aStart <= bEnd && bStart <= aEnd
+  return aStart < occupiedUntil(bStart, bEnd) && bStart < occupiedUntil(aStart, aEnd)
 }
 
 export type RentalLike = { start_date: DateString; end_date: DateString; vehicle_id?: string | null }
