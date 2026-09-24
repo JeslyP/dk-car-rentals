@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Payment, Rental, Renter, Vehicle } from '@/lib/supabase'
-import { balanceDue, daysPastDue, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, rentalDays, rentalTotal, todayString } from '@/lib/rentals'
+import { balanceDue, daysPastDue, describeVehicle, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, rentalDays, rentalTotal, todayString, vehicleColour, vehicleName } from '@/lib/rentals'
 import { PAYMENT_METHODS } from '@/lib/finance'
 import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
@@ -263,7 +263,12 @@ export default function RentalsPage() {
                       <p className="font-medium text-gray-800">{r.renter?.name || '—'}</p>
                       <p className="text-gray-400 text-xs">{r.renter?.phone}</p>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{r.vehicle ? `${r.vehicle.year} ${r.vehicle.make} ${r.vehicle.model}` : '—'}</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {vehicleName(r.vehicle)}
+                      {vehicleColour(r.vehicle) && (
+                        <span className="block text-xs text-gray-400">{vehicleColour(r.vehicle)}</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                       {formatDate(r.start_date)} → {formatDate(r.end_date)}
                       {isActiveRental(r, today) && <span className="ml-2 text-[10px] font-bold uppercase text-orange-500">out</span>}
@@ -306,7 +311,7 @@ export default function RentalsPage() {
               <button onClick={() => { setPaying(null); setError('') }} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">×</button>
             </div>
             <p className="text-gray-400 text-sm mb-6">
-              {paying.renter?.name} · {paying.vehicle ? `${paying.vehicle.make} ${paying.vehicle.model}` : 'vehicle removed'}
+              {paying.renter?.name} · {describeVehicle(paying.vehicle, 'vehicle removed')}
             </p>
 
             <div className="grid grid-cols-3 gap-3 mb-6 text-center">
@@ -394,7 +399,7 @@ export default function RentalsPage() {
                 <select required value={form.vehicle_id} onChange={e => handleVehicleChange(e.target.value)} className={inputCls}>
                   <option value="">Select vehicle</option>
                   {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.year} {v.make} {v.model} ({v.license_plate})</option>
+                    <option key={v.id} value={v.id}>{describeVehicle(v)} ({v.license_plate})</option>
                   ))}
                 </select>
               </div>
