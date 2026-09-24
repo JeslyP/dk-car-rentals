@@ -384,7 +384,10 @@ export default function AdminDashboard() {
       <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Still owed to you', value: formatMoney(owed), sub: `${owing.length} rental${owing.length === 1 ? '' : 's'}`, href: '/admin/rentals' },
-          { label: 'Cars out now', value: String(active.length), sub: `${vehicles.filter(v => v.is_available && !rentedIds.has(v.id)).length} free today`, href: '/admin/calendar' },
+          // "Free" means not out on a rental today. Whether a car is listed on the
+          // public website is a separate choice and has no bearing on whether it
+          // is sitting in the yard, so it is not counted here.
+          { label: 'Cars out now', value: String(active.length), sub: `${vehicles.filter(v => !rentedIds.has(v.id)).length} free today`, href: '/admin/calendar' },
           { label: 'Upcoming rentals', value: String(rentals.filter(r => isUpcomingRental(r, today)).length), sub: 'Booked ahead', href: '/admin/calendar' },
           { label: 'New requests', value: String(requests.length), sub: 'Awaiting review', href: '/admin/requests' },
         ].map(card => (
