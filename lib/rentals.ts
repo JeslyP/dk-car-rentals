@@ -120,6 +120,38 @@ export function formatMoney(n: number | string | null | undefined): string {
   return `${cents < 0 ? '-' : ''}$${(Math.abs(cents) / 100).toFixed(2)}`
 }
 
+export type VehicleNamed = {
+  year: number | string
+  make: string
+  model: string
+  color?: string | null
+}
+
+/**
+ * How a car is named on the rentals screens.
+ *
+ * The colour is included whenever it has been recorded, because two cars of
+ * the same year, make and model are otherwise impossible to tell apart when
+ * picking one out of a list. The money reports use their own label in
+ * lib/finance.ts, which stays colourless so the CSV columns do not shift.
+ */
+export function vehicleName(v: VehicleNamed | null | undefined, fallback = '\u2014'): string {
+  if (!v) return fallback
+  return `${v.year} ${v.make} ${v.model}`.replace(/\s+/g, ' ').trim()
+}
+
+/** The recorded colour, or '' when none was entered. */
+export function vehicleColour(v: VehicleNamed | null | undefined): string {
+  return typeof v?.color === 'string' ? v.color.trim() : ''
+}
+
+/** Name and colour on one line, for a dropdown or a heading. */
+export function describeVehicle(v: VehicleNamed | null | undefined, fallback = '\u2014'): string {
+  if (!v) return fallback
+  const colour = vehicleColour(v)
+  return colour ? `${vehicleName(v)} \u00b7 ${colour}` : vehicleName(v)
+}
+
 export function formatDate(d: DateString): string {
   if (!isValidDateString(d)) return d
   return parseDate(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })

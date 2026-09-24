@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addDays, balanceDue, bookedVehicleIds, daysPastDue, formatDate, formatMoney, isActiveRental,
+  addDays, balanceDue, bookedVehicleIds, daysPastDue, describeVehicle, formatDate, formatMoney, isActiveRental,
   isOverdueRental, isPastRental, isUpcomingRental,
   isValidDateString, paymentStatusFor, rangesOverlap, rentalDays, rentalTotal,
+  vehicleColour, vehicleName,
 } from '@/lib/rentals'
 
 describe('rentalDays', () => {
@@ -146,5 +147,53 @@ describe('formatMoney with negative amounts', () => {
   it('still formats positives and zero unchanged', () => {
     expect(formatMoney(0)).toBe('$0.00')
     expect(formatMoney(70)).toBe('$70.00')
+  })
+})
+
+describe('describeVehicle', () => {
+  const fit = { year: 2015, make: 'Honda', model: 'Fit' }
+
+  it('adds the colour when one is recorded', () => {
+    expect(describeVehicle({ ...fit, color: 'Black' })).toBe('2015 Honda Fit \u00b7 Black')
+  })
+  it('leaves the name alone when no colour is recorded', () => {
+    expect(describeVehicle(fit)).toBe('2015 Honda Fit')
+    expect(describeVehicle({ ...fit, color: null })).toBe('2015 Honda Fit')
+    expect(describeVehicle({ ...fit, color: '' })).toBe('2015 Honda Fit')
+    expect(describeVehicle({ ...fit, color: '   ' })).toBe('2015 Honda Fit')
+  })
+  it('trims a colour typed with stray spaces', () => {
+    expect(describeVehicle({ ...fit, color: '  Silver ' })).toBe('2015 Honda Fit \u00b7 Silver')
+  })
+  it('tells two identical cars apart', () => {
+    const a = describeVehicle({ ...fit, color: 'Black' })
+    const b = describeVehicle({ ...fit, color: 'Red' })
+    expect(a).not.toBe(b)
+  })
+  it('falls back when the vehicle is missing, and the caller can word it', () => {
+    expect(describeVehicle(null)).toBe('\u2014')
+    expect(describeVehicle(undefined)).toBe('\u2014')
+    expect(describeVehicle(null, 'vehicle removed')).toBe('vehicle removed')
+  })
+})
+
+describe('vehicleName / vehicleColour', () => {
+  const fit = { year: 2015, make: 'Honda', model: 'Fit', color: 'Black' }
+
+  it('gives the name without the colour, for the two-line table cell', () => {
+    expect(vehicleName(fit)).toBe('2015 Honda Fit')
+  })
+  it('gives the colour on its own, trimmed', () => {
+    expect(vehicleColour(fit)).toBe('Black')
+    expect(vehicleColour({ ...fit, color: '  Silver ' })).toBe('Silver')
+  })
+  it('gives an empty colour rather than undefined when none is recorded', () => {
+    expect(vehicleColour({ year: 2015, make: 'Honda', model: 'Fit' })).toBe('')
+    expect(vehicleColour({ ...fit, color: null })).toBe('')
+    expect(vehicleColour(null)).toBe('')
+  })
+  it('falls back the same way describeVehicle does', () => {
+    expect(vehicleName(null)).toBe('\u2014')
+    expect(vehicleName(null, 'vehicle removed')).toBe('vehicle removed')
   })
 })

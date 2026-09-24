@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import { api } from '@/lib/api-client'
 import type { Payment, Renter, Rental } from '@/lib/supabase'
 import {
-  balanceDue, daysPastDue, formatDate, formatMoney, isOverdueRental, rentalDays, todayString,
+  balanceDue, daysPastDue, describeVehicle, formatDate, formatMoney, isOverdueRental, rentalDays, todayString,
 } from '@/lib/rentals'
 
 /**
@@ -61,7 +61,7 @@ export default function RenterStatementPage() {
     .filter(r => isOverdueRental(r, today))
     .reduce((s, r) => s + balanceDue(Number(r.total_charge), Number(r.amount_paid)), 0)
 
-  const carOf = (r: Rental) => (r.vehicle ? `${r.vehicle.year} ${r.vehicle.make} ${r.vehicle.model}` : '—')
+  const carOf = (r: Rental) => describeVehicle(r.vehicle)
 
   if (loading) return <div className="p-8 text-gray-400">Loading…</div>
   if (error) return <div className="p-8"><div className="p-4 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div></div>
@@ -196,7 +196,7 @@ export default function RenterStatementPage() {
                 return (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(p.paid_on)}</td>
-                    <td className="px-6 py-4 text-gray-500">{r ? `${carOf(r)} · ${formatDate(r.start_date)}` : '—'}</td>
+                    <td className="px-6 py-4 text-gray-500">{r ? `${carOf(r)} (${formatDate(r.start_date)})` : '—'}</td>
                     <td className="px-6 py-4 text-gray-500">{p.method ? METHOD_LABELS[p.method] ?? p.method : '—'}</td>
                     <td className="px-6 py-4 text-gray-400 text-xs">{p.notes || ''}</td>
                     <td className="px-6 py-4 text-right font-semibold text-green-700 dk-num">{formatMoney(p.amount)}</td>
