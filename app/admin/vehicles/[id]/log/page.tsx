@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { api } from '@/lib/api-client'
@@ -96,7 +97,7 @@ export default function VehicleLogPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="no-print flex flex-wrap justify-between items-center gap-3 mb-6">
-        <a href="/admin/vehicles" className="text-sm text-gray-500 hover:text-gray-800">← All vehicles</a>
+        <Link href="/admin/vehicles" className="text-sm text-gray-500 hover:text-gray-800">← All vehicles</Link>
         <div className="flex gap-2">
           {years.length > 1 && (
             <select value={year} onChange={e => setYear(e.target.value)}

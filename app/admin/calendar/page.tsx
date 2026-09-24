@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Rental, Vehicle } from '@/lib/supabase'
@@ -166,8 +167,8 @@ export default function CalendarPage() {
               {selected.notes && <div><dt className="text-gray-500">Notes</dt><dd className="text-gray-700 mt-1">{selected.notes}</dd></div>}
             </dl>
             <div className="flex gap-2 mt-6">
-              <a href={`/admin/rentals/${selected.id}/invoice`} className="flex-1 text-center py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50">Invoice</a>
-              <a href="/admin/rentals" className="flex-1 text-center py-3 rounded-xl text-white font-semibold text-sm" style={{ background: '#ea580c' }}>Open rentals</a>
+              <Link href={`/admin/rentals/${selected.id}/invoice`} className="flex-1 text-center py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50">Invoice</Link>
+              <Link href="/admin/rentals" className="flex-1 text-center py-3 rounded-xl text-white font-semibold text-sm" style={{ background: '#ea580c' }}>Open rentals</Link>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { api } from '@/lib/api-client'
@@ -75,7 +76,7 @@ export default function RenterStatementPage() {
       `}</style>
 
       <div className="no-print mb-4">
-        <a href="/admin/renters" className="text-sm text-orange-500 hover:text-orange-600 font-medium">← All renters</a>
+        <Link href="/admin/renters" className="text-sm text-orange-500 hover:text-orange-600 font-medium">← All renters</Link>
       </div>
 
       <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
@@ -153,7 +154,7 @@ export default function RenterStatementPage() {
                     <td className="px-4 py-4 text-right text-green-700 dk-num">{formatMoney(r.amount_paid)}</td>
                     <td className={`px-4 py-4 text-right dk-num ${due > 0 ? 'text-red-600 font-semibold' : 'text-gray-300'}`}>{formatMoney(due)}</td>
                     <td className="px-4 py-4 no-print">
-                      <a href={`/admin/rentals/${r.id}/invoice`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition whitespace-nowrap">Invoice</a>
+                      <Link href={`/admin/rentals/${r.id}/invoice`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition whitespace-nowrap">Invoice</Link>
                     </td>
                   </tr>
                 )

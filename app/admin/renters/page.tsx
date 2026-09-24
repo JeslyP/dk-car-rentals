@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Renter, Rental } from '@/lib/supabase'
@@ -232,7 +233,7 @@ export default function RentersPage() {
               <div className="flex justify-between items-start gap-3 mb-3">
                 <div className="min-w-0">
                   {a.renterId ? (
-                    <a href={`/admin/renters/${a.renterId}`} className="font-semibold text-gray-800 hover:text-orange-600">{a.name}</a>
+                    <Link href={`/admin/renters/${a.renterId}`} className="font-semibold text-gray-800 hover:text-orange-600">{a.name}</Link>
                   ) : (
                     <p className="font-semibold text-gray-500 italic">{a.name}</p>
                   )}
@@ -251,7 +252,7 @@ export default function RentersPage() {
               </dl>
               {a.renterId && (
                 <div className="flex gap-1 mt-4">
-                  <a href={`/admin/renters/${a.renterId}`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Statement</a>
+                  <Link href={`/admin/renters/${a.renterId}`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Statement</Link>
                   <button onClick={() => openEdit(a.renterId!)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Edit</button>
                   <button onClick={() => remove(a.renterId!, a.name)} className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition">🗑️</button>
                 </div>
@@ -287,7 +288,7 @@ export default function RentersPage() {
                   <tr key={a.renterId ?? 'none'} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
                       {a.renterId ? (
-                        <a href={`/admin/renters/${a.renterId}`} className="font-medium text-gray-800 hover:text-orange-600 whitespace-nowrap">{a.name}</a>
+                        <Link href={`/admin/renters/${a.renterId}`} className="font-medium text-gray-800 hover:text-orange-600 whitespace-nowrap">{a.name}</Link>
                       ) : (
                         <span className="text-gray-500 italic whitespace-nowrap">{a.name}</span>
                       )}
@@ -306,7 +307,7 @@ export default function RentersPage() {
                     <td className="px-4 py-4">
                       {a.renterId && (
                         <div className="flex gap-1">
-                          <a href={`/admin/renters/${a.renterId}`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition whitespace-nowrap">Statement</a>
+                          <Link href={`/admin/renters/${a.renterId}`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition whitespace-nowrap">Statement</Link>
                           <button onClick={() => openEdit(a.renterId!)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Edit</button>
                           <button onClick={() => remove(a.renterId!, a.name)} className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition">🗑️</button>
                         </div>
