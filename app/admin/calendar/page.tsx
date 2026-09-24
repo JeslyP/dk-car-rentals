@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Rental, Vehicle } from '@/lib/supabase'
-import { addDays, formatDate, formatMoney, parseDate, todayString, toDateString } from '@/lib/rentals'
+import { addDays, describeVehicle, formatDate, formatMoney, parseDate, todayString, toDateString, vehicleColour, vehicleName } from '@/lib/rentals'
 
 /** First and last day of the month containing `d` (YYYY-MM-DD). */
 function monthBounds(d: string): { start: string; end: string } {
@@ -108,8 +108,10 @@ export default function CalendarPage() {
             return (
               <div key={v.id} className="flex border-b border-gray-50 hover:bg-gray-50/50">
                 <div className="w-40 flex-shrink-0 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{v.year} {v.make} {v.model}</p>
-                  <p className="text-xs text-gray-400 truncate">{v.license_plate}{!v.is_available ? ' · not listed' : ''}</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">{vehicleName(v)}</p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {[vehicleColour(v), v.license_plate].filter(Boolean).join(' · ')}{!v.is_available ? ' · not listed' : ''}
+                  </p>
                 </div>
                 <div className="flex-1 relative grid items-center py-2" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(34px, 1fr))`, minHeight: 56 }}>
                   {days.map(d => (
@@ -157,7 +159,7 @@ export default function CalendarPage() {
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
             <dl className="text-sm space-y-2">
-              <div className="flex justify-between"><dt className="text-gray-500">Vehicle</dt><dd className="font-medium text-gray-800">{selected.vehicle ? `${selected.vehicle.year} ${selected.vehicle.make} ${selected.vehicle.model}` : '—'}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-500">Vehicle</dt><dd className="font-medium text-gray-800">{describeVehicle(selected.vehicle)}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-500">Dates</dt><dd className="font-medium text-gray-800">{formatDate(selected.start_date)} → {formatDate(selected.end_date)}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-500">Total</dt><dd className="font-medium text-gray-800">{formatMoney(selected.total_charge)}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-500">Paid</dt><dd className="font-medium text-gray-800">{formatMoney(selected.amount_paid)} <span className="text-xs text-gray-400">({selected.payment_status})</span></dd></div>
