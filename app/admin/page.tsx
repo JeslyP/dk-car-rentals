@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Expense, Payment, Rental, RentalRequest, Vehicle } from '@/lib/supabase'
-import { balanceDue, daysPastDue, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, todayString } from '@/lib/rentals'
+import { balanceDue, daysPastDue, describeVehicle, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, todayString } from '@/lib/rentals'
 import {
   COST_GROUP_LABELS, CostGroup, currentMonthKey, monthEnd, monthLabel, monthStart,
   monthlyStatement, parseTaxRate, shiftMonthKey, summarise,
@@ -72,6 +72,16 @@ export default function AdminDashboard() {
   const today = todayString()
   const active = rentals.filter(r => isActiveRental(r, today))
   const rentedIds = new Set(active.map(r => r.vehicle_id))
+  /**
+   * The fleet at a glance. "Free" means not out on a rental today; whether a
+   * car is listed on the public website is a separate choice with no bearing
+   * on whether it is sitting in the yard, so it is shown as its own figure.
+   */
+  const outCars = Array.from(
+    new Map(active.map(r => [r.vehicle_id ?? r.id, describeVehicle(r.vehicle, 'No vehicle recorded')])).values(),
+  )
+  const freeCount = vehicles.filter(v => !rentedIds.has(v.id)).length
+  const listedCount = vehicles.filter(v => v.is_available).length
   const owed = rentals.reduce((s, r) => s + balanceDue(Number(r.total_charge), Number(r.amount_paid)), 0)
   const owing = rentals
     .filter(r => balanceDue(Number(r.total_charge), Number(r.amount_paid)) > 0)
@@ -382,16 +392,26 @@ export default function AdminDashboard() {
 
       {/* Day to day */}
       <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Still owed to you', value: formatMoney(owed), sub: `${owing.length} rental${owing.length === 1 ? '' : 's'}`, href: '/admin/rentals' },
-          { label: 'Cars out now', value: String(active.length), sub: `${vehicles.filter(v => v.is_available && !rentedIds.has(v.id)).length} free today`, href: '/admin/calendar' },
-          { label: 'Upcoming rentals', value: String(rentals.filter(r => isUpcomingRental(r, today)).length), sub: 'Booked ahead', href: '/admin/calendar' },
-          { label: 'New requests', value: String(requests.length), sub: 'Awaiting review', href: '/admin/requests' },
-        ].map(card => (
-          <Link key={card.label} href={card.href} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-orange-200 transition">
+        {([
+          { label: 'Still owed to you', value: formatMoney(owed), sub: [`${owing.length} rental${owing.length === 1 ? '' : 's'}`], href: '/admin/rentals' },
+          {
+            label: 'Cars out now', value: String(outCars.length), href: '/admin/calendar',
+            // Which cars are out, then the rest of the fleet.
+            detail: outCars.length > 3 ? [...outCars.slice(0, 3), `+${outCars.length - 3} more`] : outCars,
+            sub: [`${freeCount} free today`, `${listedCount} listed on website`],
+          },
+          { label: 'Upcoming rentals', value: String(rentals.filter(r => isUpcomingRental(r, today)).length), sub: ['Booked ahead'], href: '/admin/calendar' },
+          { label: 'New requests', value: String(requests.length), sub: ['Awaiting review'], href: '/admin/requests' },
+        ] as { label: string; value: string; sub: string[]; detail?: string[]; href: string }[]).map(card => (
+          <Link key={card.label} href={card.href} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-orange-200 transition min-w-0">
             <p className="text-2xl font-black text-gray-800 dk-num">{loading ? '—' : card.value}</p>
             <p className="text-sm text-gray-600 mt-1">{card.label}</p>
-            <p className="text-xs text-gray-400">{card.sub}</p>
+            {!loading && card.detail?.map(d => (
+              <p key={d} className="text-xs font-medium text-gray-700 leading-snug">{d}</p>
+            ))}
+            {card.sub.map(line => (
+              <p key={line} className="text-xs text-gray-400">{line}</p>
+            ))}
           </Link>
         ))}
       </div>

@@ -8,6 +8,7 @@ import {
   monthStart, shiftMonthKey, vehicleLabel,
 } from '@/lib/finance'
 import { UndoBar, UndoTarget } from '@/components/UndoBar'
+import { MoneyInput } from '@/components/MoneyInput'
 
 const CATEGORY_ICONS: Record<string, string> = {
   fuel: '⛽', maintenance: '🔧', repair: '🛠️', tires: '🛞', parts: '⚙️', insurance: '🛡️',
@@ -314,8 +315,8 @@ export default function ExpensesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Amount ($) *</label>
-                  <input required type="number" min={0} step="0.01" inputMode="decimal" autoFocus
-                    value={form.amount || ''} onChange={e => setForm({ ...form, amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                  <MoneyInput required autoFocus
+                    value={form.amount} onChange={amount => setForm(f => ({ ...f, amount }))}
                     className={`${inputCls} text-lg font-bold`} placeholder="0.00" />
                 </div>
                 <div>
