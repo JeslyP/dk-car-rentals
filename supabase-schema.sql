@@ -53,10 +53,11 @@ CREATE TABLE rentals (
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT rentals_dates_check CHECK (end_date >= start_date),
-  -- A vehicle can only be rented to one person at a time (dates are inclusive).
+  -- A vehicle can only be rented to one person at a time. The return date is
+  -- handover day, so the next rental may start on it (see migration v9).
   CONSTRAINT rentals_no_overlap EXCLUDE USING gist (
     vehicle_id WITH =,
-    daterange(start_date, end_date, '[]') WITH &&
+    daterange(start_date, greatest(end_date, start_date + 1), '[)') WITH &&
   ) WHERE (vehicle_id IS NOT NULL)
 );
 CREATE INDEX rentals_vehicle_dates_idx ON rentals (vehicle_id, start_date, end_date);

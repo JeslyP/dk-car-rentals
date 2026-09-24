@@ -53,7 +53,7 @@ visible on screen.
 **Leave alone unless you know why.** Already applied to the live database.
 Editing one changes nothing; you would need a new migration file instead.
 
-- `supabase-schema.sql`, `supabase-migration-v2.sql` through `v8.sql`
+- `supabase-schema.sql`, `supabase-migration-v2.sql` through `v9.sql`
 
 ---
 
@@ -147,6 +147,7 @@ applied to the live project.
 | `supabase-migration-v6.sql` | The vehicle photo storage |
 | `supabase-migration-v7.sql` | Made deleting reversible |
 | `supabase-migration-v8.sql` | A removed rental takes its payments too |
+| `supabase-migration-v9.sql` | A car can go back out on the day it is returned |
 
 Never edit one that has been run. It will not re-apply. Write a `v9` instead.
 
