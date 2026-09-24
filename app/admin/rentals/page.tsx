@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Payment, Rental, Renter, Vehicle } from '@/lib/supabase'
@@ -288,7 +289,7 @@ export default function RentalsPage() {
                           className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${due > 0 ? 'bg-green-50 hover:bg-green-100 text-green-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
                           {due > 0 ? '＋ Payment' : 'Payments'}
                         </button>
-                        <a href={`/admin/rentals/${r.id}/invoice`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Invoice</a>
+                        <Link href={`/admin/rentals/${r.id}/invoice`} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Invoice</Link>
                         <button onClick={() => openEdit(r)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Edit</button>
                         <button onClick={() => remove(r)} className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition">🗑️</button>
                       </div>

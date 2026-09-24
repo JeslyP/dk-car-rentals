@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api-client'
@@ -72,7 +73,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
           </form>
           <div className="flex items-center justify-center gap-4 mt-6">
-            <a href="/" className="text-sm text-gray-400 hover:text-gray-600">← Back to website</a>
+            <Link href="/" className="text-sm text-gray-400 hover:text-gray-600">← Back to website</Link>
             <ThemeToggle compact className="text-lg leading-none opacity-60 hover:opacity-100 transition" />
           </div>
         </div>
@@ -109,23 +110,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map(item => (
-            <a key={item.href} href={item.href}
+            <Link key={item.href} href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
                 isActive(item.href) ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
               style={isActive(item.href) ? { background: '#ea580c' } : {}}>
               <span>{item.icon}</span>
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
         <div className="p-4 border-t border-white/10">
-          <a href="/admin/removed" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm transition">
+          <Link href="/admin/removed" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm transition">
             🗑️ Removed items
-          </a>
-          <a href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm transition">
+          </Link>
+          <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm transition">
             🌐 View Website
-          </a>
+          </Link>
           <ThemeToggle className="text-gray-400 hover:text-white" />
           <button onClick={logout}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 text-sm w-full transition">
@@ -142,7 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle compact className="text-gray-400 text-sm leading-none" />
-          <a href="/" className="text-gray-400 text-xs">🌐 Site</a>
+          <Link href="/" className="text-gray-400 text-xs">🌐 Site</Link>
           <button onClick={logout} className="text-gray-400 text-xs">🚪 Out</button>
         </div>
       </div>
@@ -155,13 +156,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile bottom nav */}
       <nav className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 overflow-x-auto" style={{ background: 'var(--nav)' }}>
         {navItems.map(item => (
-          <a key={item.href} href={item.href}
+          <Link key={item.href} href={item.href}
             className={`flex-1 min-w-[56px] flex flex-col items-center justify-center py-2 text-xs transition ${
               isActive(item.href) ? 'text-orange-400' : 'text-gray-500'
             }`}>
             <span className="text-lg leading-none mb-1">{item.icon}</span>
             <span className="text-[10px]">{item.label}</span>
-          </a>
+          </Link>
         ))}
       </nav>
     </div>

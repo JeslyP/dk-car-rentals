@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { api } from '@/lib/api-client'
@@ -24,7 +25,7 @@ export default function InvoicePage() {
     api.get<Payment[]>(`/api/admin/payments?rental_id=${params.id}`).then(setPayments).catch(() => setPayments([]))
   }, [params?.id])
 
-  if (error) return <div className="p-8 text-red-600">{error} <a href="/admin/rentals" className="underline ml-2">Back</a></div>
+  if (error) return <div className="p-8 text-red-600">{error} <Link href="/admin/rentals" className="underline ml-2">Back</Link></div>
   if (!rental) return <div className="p-8 text-gray-400">Loading invoice…</div>
 
   const days = rentalDays(rental.start_date, rental.end_date)
@@ -39,7 +40,7 @@ export default function InvoicePage() {
       <style>{`@media print { .no-print { display: none !important } body { background: #fff } }`}</style>
 
       <div className="no-print max-w-3xl mx-auto flex justify-between items-center mb-4">
-        <a href="/admin/rentals" className="text-sm text-gray-500 hover:text-gray-800">← Back to rentals</a>
+        <Link href="/admin/rentals" className="text-sm text-gray-500 hover:text-gray-800">← Back to rentals</Link>
         <button onClick={() => window.print()} className="px-5 py-2 rounded-xl text-white font-semibold text-sm" style={{ background: '#ea580c' }}>🖨️ Print / Save as PDF</button>
       </div>
 

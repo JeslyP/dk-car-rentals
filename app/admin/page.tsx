@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Expense, Payment, Rental, RentalRequest, Vehicle } from '@/lib/supabase'
@@ -164,9 +165,9 @@ export default function AdminDashboard() {
             ))}
           </ul>
           {overdue.length > 5 && <p className="mt-2 text-xs text-red-700/70">and {overdue.length - 5} more</p>}
-          <a href="/admin/rentals" className="inline-block mt-4 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:opacity-90">
+          <Link href="/admin/rentals" className="inline-block mt-4 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:opacity-90">
             Chase these up
-          </a>
+          </Link>
         </div>
       )}
 
@@ -235,7 +236,7 @@ export default function AdminDashboard() {
 
         {st.costs.total === 0 ? (
           <p className="text-sm text-gray-400 py-4">
-            No costs recorded for {monthLabel(month)}. <a href="/admin/expenses" className="text-orange-500 font-medium">Add repairs, gas or a car wash →</a>
+            No costs recorded for {monthLabel(month)}. <Link href="/admin/expenses" className="text-orange-500 font-medium">Add repairs, gas or a car wash →</Link>
           </p>
         ) : (
           <>
@@ -294,7 +295,7 @@ export default function AdminDashboard() {
             <h2 className="font-bold text-gray-800">Each vehicle this month</h2>
             <p className="text-gray-400 text-xs mt-0.5">Before the government&apos;s share, which is taken off the business total</p>
           </div>
-          <a href="/admin/reports" className="no-print text-sm text-orange-500 hover:text-orange-600 font-medium whitespace-nowrap">Full report →</a>
+          <Link href="/admin/reports" className="no-print text-sm text-orange-500 hover:text-orange-600 font-medium whitespace-nowrap">Full report →</Link>
         </div>
         {/* Phone layout: one block per vehicle, nothing off the edge */}
         <div className="md:hidden divide-y divide-gray-100">
@@ -306,7 +307,7 @@ export default function AdminDashboard() {
             <div key={v.vehicleId ?? 'none'} className="px-6 py-4">
               <p className="font-semibold text-gray-800 mb-2">
                 {v.vehicleId
-                  ? <a href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</a>
+                  ? <Link href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</Link>
                   : v.label}
               </p>
               <dl className="text-sm dk-num space-y-1">
@@ -350,7 +351,7 @@ export default function AdminDashboard() {
                 <tr key={v.vehicleId ?? 'none'} className="hover:bg-gray-50">
                   <td className="px-6 py-3 font-medium text-gray-800">
                     {v.vehicleId
-                      ? <a href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</a>
+                      ? <Link href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</Link>
                       : v.label}
                   </td>
                   <td className="px-6 py-3 text-right text-green-700">{formatMoney(v.collected)}</td>
@@ -387,18 +388,18 @@ export default function AdminDashboard() {
           { label: 'Upcoming rentals', value: String(rentals.filter(r => isUpcomingRental(r, today)).length), sub: 'Booked ahead', href: '/admin/calendar' },
           { label: 'New requests', value: String(requests.length), sub: 'Awaiting review', href: '/admin/requests' },
         ].map(card => (
-          <a key={card.label} href={card.href} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-orange-200 transition">
+          <Link key={card.label} href={card.href} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-orange-200 transition">
             <p className="text-2xl font-black text-gray-800 dk-num">{loading ? '—' : card.value}</p>
             <p className="text-sm text-gray-600 mt-1">{card.label}</p>
             <p className="text-xs text-gray-400">{card.sub}</p>
-          </a>
+          </Link>
         ))}
       </div>
 
       <div className="no-print flex flex-wrap gap-3">
-        <a href="/admin/expenses" className="px-5 py-3 rounded-xl text-white text-sm font-semibold" style={{ background: '#ea580c' }}>+ Add a cost</a>
-        <a href="/admin/rentals" className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">+ Log a rental</a>
-        <a href="/admin/reports" className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">📄 Full money report</a>
+        <Link href="/admin/expenses" className="px-5 py-3 rounded-xl text-white text-sm font-semibold" style={{ background: '#ea580c' }}>+ Add a cost</Link>
+        <Link href="/admin/rentals" className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">+ Log a rental</Link>
+        <Link href="/admin/reports" className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">📄 Full money report</Link>
       </div>
     </div>
   )

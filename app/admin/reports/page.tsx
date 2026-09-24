@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Expense, Payment, Rental, Vehicle } from '@/lib/supabase'
@@ -201,7 +202,7 @@ export default function ReportsPage() {
                 <tr key={v.vehicleId ?? 'none'} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-800">
                     {v.vehicleId
-                      ? <a href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</a>
+                      ? <Link href={`/admin/vehicles/${v.vehicleId}/log`} className="hover:text-orange-600">{v.label}</Link>
                       : v.label}
                   </td>
                   <td className="px-6 py-4 text-right text-gray-500">{v.rentals}</td>
@@ -236,7 +237,7 @@ export default function ReportsPage() {
           </div>
           <div className="p-6 space-y-3">
             {summary.byCategory.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">No costs recorded for this period. <a href="/admin/expenses" className="text-orange-500">Add some →</a></p>
+              <p className="text-gray-400 text-sm text-center py-4">No costs recorded for this period. <Link href="/admin/expenses" className="text-orange-500">Add some →</Link></p>
             ) : summary.byCategory.map(c => (
               <div key={c.category}>
                 <div className="flex justify-between text-sm mb-1">

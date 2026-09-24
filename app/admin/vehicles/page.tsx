@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Vehicle } from '@/lib/supabase'
@@ -150,10 +151,10 @@ export default function VehiclesPage() {
                   <button onClick={() => deleteVehicle(v)} className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-sm transition">🗑️</button>
                 </div>
               </div>
-              <a href={`/admin/vehicles/${v.id}/log`}
+              <Link href={`/admin/vehicles/${v.id}/log`}
                 className="block mt-4 text-center py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                 📋 Log sheet
-              </a>
+              </Link>
             </div>
           </div>
         ))}

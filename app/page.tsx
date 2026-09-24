@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase, Vehicle } from '@/lib/supabase'
 import { formatMoney, todayString } from '@/lib/rentals'
@@ -266,10 +267,10 @@ export default function Home() {
       <footer style={{ background: 'var(--nav)' }} className="py-8 px-4 text-center text-gray-500 text-sm">
         <p>© {new Date().getFullYear()} D&J Car Rentals. All rights reserved.</p>
         {/* Discreet way in for the owner. The admin itself is password protected. */}
-        <a href="/admin"
+        <Link href="/admin"
           className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-full border border-white/15 text-gray-400 hover:text-white hover:border-white/40 transition text-xs font-medium">
           🔒 Owner login
-        </a>
+        </Link>
       </footer>
 
       {/* Booking Modal */}
