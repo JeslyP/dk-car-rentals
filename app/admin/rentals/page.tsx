@@ -5,6 +5,7 @@ import { api } from '@/lib/api-client'
 import type { Payment, Rental, Renter, Vehicle } from '@/lib/supabase'
 import { balanceDue, daysPastDue, describeVehicle, formatDate, formatMoney, isActiveRental, isOverdueRental, isUpcomingRental, rentalDays, rentalTotal, todayString, vehicleColour, vehicleName } from '@/lib/rentals'
 import { PAYMENT_METHODS } from '@/lib/finance'
+import { MoneyInput } from '@/components/MoneyInput'
 import { UndoBar, UndoTarget } from '@/components/UndoBar'
 
 const emptyForm = {
@@ -337,8 +338,8 @@ export default function RentalsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Amount ($)</label>
-                  <input type="number" min={0} step="0.01" inputMode="decimal" value={payForm.amount || ''}
-                    onChange={e => setPayForm({ ...payForm, amount: num(e.target.value) })}
+                  <MoneyInput value={payForm.amount} onChange={amount => setPayForm(f => ({ ...f, amount }))}
+                    placeholder="0.00"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-bold focus:outline-none focus:border-orange-400" />
                 </div>
                 <div>
@@ -364,6 +365,16 @@ export default function RentalsPage() {
                 className="w-full mt-4 py-3 rounded-xl text-white font-bold disabled:opacity-50" style={{ background: '#ea580c' }}>
                 {payBusy ? 'Saving…' : 'Add payment'}
               </button>
+              {payForm.amount <= 0 && (
+                <p className="text-xs text-gray-500 mt-3">
+                  {history.length > 0 ? (
+                    <>A $0 payment would not change anything, because payments add up. To take back one
+                    that was entered by mistake, tap <b>Remove</b> next to it under <b>Already recorded</b>.</>
+                  ) : (
+                    <>Enter the amount you received to record a payment.</>
+                  )}
+                </p>
+              )}
             </div>
 
             <p className="text-sm font-semibold text-gray-700 mb-2">Already recorded</p>
@@ -457,7 +468,7 @@ export default function RentalsPage() {
                   <p className="text-sm font-semibold text-gray-700 mb-1">Money received now</p>
                   <p className="text-xs text-gray-400 mb-3">Leave at zero if they are paying later. You can add payments any time.</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <input type="number" min={0} step="0.01" value={form.deposit || ''} onChange={e => setForm({ ...form, deposit: num(e.target.value) })}
+                    <MoneyInput value={form.deposit} onChange={deposit => setForm(f => ({ ...f, deposit }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-orange-400" placeholder="0.00" />
                     <input type="date" value={form.deposit_date} onChange={e => setForm({ ...form, deposit_date: e.target.value })}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-orange-400" />
