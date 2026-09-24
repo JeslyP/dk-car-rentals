@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import type { Expense, Vehicle } from '@/lib/supabase'
-import { formatDate, formatMoney, todayString } from '@/lib/rentals'
+import { describeVehicle, formatDate, formatMoney, todayString } from '@/lib/rentals'
 import {
   CATEGORY_LABELS, EXPENSE_CATEGORIES, currentMonthKey, expensesCsv, monthEnd, monthLabel,
   monthStart, shiftMonthKey, vehicleLabel,
@@ -18,11 +18,14 @@ const CATEGORY_ICONS: Record<string, string> = {
 const emptyForm = {
   spent_on: '', vehicle_id: '', category: 'fuel', amount: 0,
   vendor: '', description: '', odometer: '' as string,
+  is_paid: true,
 }
 type Form = typeof emptyForm
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
+  /** Every bill not settled yet, whatever month it is dated in. */
+  const [unpaid, setUnpaid] = useState<Expense[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [month, setMonth] = useState(currentMonthKey())
   const [scope, setScope] = useState<'month' | 'year' | 'all'>('month')
@@ -53,12 +56,14 @@ export default function ExpensesPage() {
       if (vehicleFilter) params.set('vehicle_id', vehicleFilter)
       if (categoryFilter) params.set('category', categoryFilter)
       const qs = params.toString()
-      const [e, v] = await Promise.all([
+      const [e, v, u] = await Promise.all([
         api.get<Expense[]>(`/api/admin/expenses${qs ? `?${qs}` : ''}`),
         api.get<Vehicle[]>('/api/admin/vehicles'),
+        api.get<Expense[]>('/api/admin/expenses?unpaid=1'),
       ])
       setExpenses(e)
       setVehicles(v)
+      setUnpaid(u)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load expenses.')
     } finally {
@@ -69,6 +74,8 @@ export default function ExpensesPage() {
   useEffect(() => { load() }, [load])
 
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
+  const unpaidInPeriod = expenses.filter(e => e.is_paid === false).reduce((s, e) => s + Number(e.amount), 0)
+  const unpaidTotal = unpaid.reduce((s, e) => s + Number(e.amount), 0)
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>()
@@ -92,6 +99,7 @@ export default function ExpensesPage() {
       vendor: e.vendor || '',
       description: e.description || '',
       odometer: e.odometer === null ? '' : String(e.odometer),
+      is_paid: e.is_paid !== false,
     })
     setEditing(e.id)
     setError('')
@@ -111,6 +119,7 @@ export default function ExpensesPage() {
         vendor: form.vendor || null,
         description: form.description || null,
         odometer: form.odometer === '' ? null : Number(form.odometer),
+        is_paid: form.is_paid,
       }
       if (editing) await api.patch(`/api/admin/expenses/${editing}`, payload)
       else await api.post('/api/admin/expenses', payload)
@@ -133,6 +142,15 @@ export default function ExpensesPage() {
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove this cost.')
+    }
+  }
+
+  const markPaid = async (e: Expense) => {
+    try {
+      await api.patch(`/api/admin/expenses/${e.id}`, { is_paid: true })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark this bill as paid.')
     }
   }
 
@@ -205,12 +223,42 @@ export default function ExpensesPage() {
         </div>
       </div>
 
+      {/* Bills still to pay, across every month */}
+      {unpaid.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+            <p className="font-semibold text-gray-800">
+              Bills still to pay
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">{unpaid.length}</span>
+            </p>
+            <p className="text-xl font-black text-gray-900 tabular-nums">{formatMoney(unpaidTotal)}</p>
+          </div>
+          <ul className="divide-y divide-gray-50">
+            {unpaid.map(e => (
+              <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm">
+                <span className="text-gray-500 whitespace-nowrap">{formatDate(e.spent_on)}</span>
+                <span className="text-gray-700">{CATEGORY_ICONS[e.category]} {CATEGORY_LABELS[e.category as never] || e.category}</span>
+                <span className="text-gray-400">{e.vehicle ? describeVehicle(e.vehicle) : 'Whole business'}{e.vendor ? ` · ${e.vendor}` : ''}</span>
+                <span className="ml-auto font-semibold text-gray-800 tabular-nums">{formatMoney(e.amount)}</span>
+                <button onClick={() => markPaid(e)}
+                  className="px-3 py-1 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold whitespace-nowrap">
+                  ✓ Mark paid
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Total + category split */}
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <p className="text-gray-400 text-sm">Total spent · {periodTitle}</p>
+          <p className="text-gray-400 text-sm">Total costs · {periodTitle}</p>
           <p className="text-3xl font-black text-red-600 mt-1">{loading ? '—' : formatMoney(total)}</p>
           <p className="text-gray-400 text-xs mt-1">{expenses.length} entr{expenses.length === 1 ? 'y' : 'ies'}</p>
+          {unpaidInPeriod > 0 && (
+            <p className="text-yellow-700 text-xs mt-1">of which {formatMoney(unpaidInPeriod)} not paid yet</p>
+          )}
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 md:col-span-2">
           <p className="text-gray-400 text-sm mb-3">Where it went</p>
@@ -263,11 +311,19 @@ export default function ExpensesPage() {
                   <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatDate(e.spent_on)}</td>
                   <td className="px-6 py-4 text-gray-600">{e.vehicle ? `${e.vehicle.year} ${e.vehicle.make} ${e.vehicle.model}` : <span className="text-gray-400">Whole business</span>}</td>
                   <td className="px-6 py-4 text-gray-700 whitespace-nowrap">{CATEGORY_ICONS[e.category]} {CATEGORY_LABELS[e.category as never] || e.category}</td>
-                  <td className="px-6 py-4 text-right font-semibold text-gray-800">{formatMoney(e.amount)}</td>
+                  <td className="px-6 py-4 text-right font-semibold text-gray-800 whitespace-nowrap">
+                    {formatMoney(e.amount)}
+                    {e.is_paid === false && (
+                      <span className="block mt-1 ml-auto w-fit px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase">not paid</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-gray-500">{e.vendor || '—'}</td>
                   <td className="px-6 py-4 text-gray-500 max-w-[16rem] truncate" title={e.description || ''}>{e.description || '—'}</td>
                   <td className="px-6 py-4">
                     <div className="flex gap-1">
+                      {e.is_paid === false && (
+                        <button onClick={() => markPaid(e)} className="px-3 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-semibold transition whitespace-nowrap">✓ Paid</button>
+                      )}
                       <button onClick={() => openEdit(e)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition">Edit</button>
                       <button onClick={() => remove(e)} className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition">🗑️</button>
                     </div>
@@ -326,6 +382,22 @@ export default function ExpensesPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Has it been paid?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([[true, '✓ Paid'], [false, 'Not paid yet']] as const).map(([value, label]) => (
+                    <button key={label} type="button" onClick={() => setForm({ ...form, is_paid: value })}
+                      className={`py-3 rounded-xl text-sm font-semibold border transition ${form.is_paid === value ? 'text-white border-transparent' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+                      style={form.is_paid === value ? { background: '#ea580c' } : {}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {!form.is_paid && (
+                  <p className="text-xs text-gray-400 mt-2">It still counts towards this month's costs. It will wait under Bills still to pay until you mark it paid.</p>
+                )}
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Which vehicle?</label>
                 <select value={form.vehicle_id} onChange={e => setForm({ ...form, vehicle_id: e.target.value })} className={inputCls}>
                   <option value="">Whole business (not one car)</option>
@@ -335,7 +407,7 @@ export default function ExpensesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Paid to</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{form.is_paid ? 'Paid to' : 'Owed to'}</label>
                   <input value={form.vendor} onChange={e => setForm({ ...form, vendor: e.target.value })} className={inputCls} placeholder="Shop or station name" />
                 </div>
                 <div>

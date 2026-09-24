@@ -47,6 +47,8 @@ export async function GET(req: Request, { params }: Ctx) {
     if (vehicle) query = query.eq('vehicle_id', vehicle)
     const category = url.searchParams.get('category')
     if (category) query = query.eq('category', category)
+    // Bills still to pay, whatever month they are dated in.
+    if (url.searchParams.get('unpaid') === '1') query = query.eq('is_paid', false)
   }
 
   const { data, error } = await query

@@ -78,6 +78,10 @@ describe('validateWrite', () => {
     expect(validateWrite('expenses', { ...base, spent_on: '2026-02-31' }, false)).toMatch(/date/)
     expect(validateWrite('expenses', { ...base, amount: -5 }, false)).toMatch(/Amount/)
     expect(validateWrite('expenses', { ...base, odometer: -1 }, false)).toMatch(/Odometer/)
+    expect(validateWrite('expenses', { ...base, is_paid: false }, false)).toBeNull()
+    expect(validateWrite('expenses', { ...base, is_paid: 'no' }, false)).toMatch(/Paid/)
+    // Ticking a bill off is a one-field update, so nothing else is required.
+    expect(validateWrite('expenses', { is_paid: true }, true)).toBeNull()
   })
   it('validates payments', () => {
     const base = { rental_id: 'r', paid_on: '2026-03-01', amount: 50 }
