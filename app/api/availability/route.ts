@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   const { data, error } = await supabaseAdmin()
     .from('rentals')
     .select('vehicle_id, start_date, end_date')
+    .is('deleted_at', null) // a removed rental must not keep a car off the website
     .lte('start_date', range.value.end)
     .gte('end_date', range.value.start)
   if (error) return NextResponse.json({ error: 'Could not check availability.' }, { status: 500 })
