@@ -73,7 +73,7 @@ export const WRITABLE_COLUMNS = {
   renters: ['name', 'phone', 'email', 'id_number'],
   rentals: ['vehicle_id', 'renter_id', 'start_date', 'end_date', 'daily_rate', 'total_charge', 'notes'],
   rental_requests: ['status'],
-  expenses: ['vehicle_id', 'spent_on', 'category', 'amount', 'vendor', 'description', 'odometer'],
+  expenses: ['vehicle_id', 'spent_on', 'category', 'amount', 'vendor', 'description', 'odometer', 'is_paid'],
   payments: ['rental_id', 'paid_on', 'amount', 'method', 'notes'],
 } as const
 
@@ -156,6 +156,7 @@ export function validateWrite(resource: AdminResource, data: Record<string, unkn
       if (data.category !== undefined && !EXPENSE_CATEGORIES.includes(String(data.category) as never)) return 'Please choose a valid category.'
       if (data.amount !== undefined && (typeof data.amount !== 'number' || data.amount < 0)) return 'Amount must be a non-negative number.'
       if (data.odometer !== undefined && data.odometer !== null && (typeof data.odometer !== 'number' || data.odometer < 0)) return 'Odometer must be a non-negative number.'
+      if (data.is_paid !== undefined && typeof data.is_paid !== 'boolean') return 'Paid must be yes or no.'
       return null
     }
     case 'payments': {

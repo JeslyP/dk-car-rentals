@@ -159,6 +159,8 @@ CREATE TABLE expenses (
   vendor TEXT,
   description TEXT,
   odometer INTEGER CHECK (odometer IS NULL OR odometer >= 0),
+  -- False for a bill that has come in but not been settled yet (migration v10).
+  is_paid BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX expenses_spent_on_idx ON expenses (spent_on DESC);

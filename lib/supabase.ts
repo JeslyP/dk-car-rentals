@@ -71,6 +71,8 @@ export type Expense = {
   vendor: string | null
   description: string | null
   odometer: number | null
+  /** False for a bill that has come in but not been settled yet. */
+  is_paid: boolean
   created_at: string
   vehicle?: Vehicle | null
 }
